@@ -18,15 +18,15 @@ To group our infrastructure, I recommend to create an own resource group.
 
 **Azure Portal**
 
->Open the Azure Portal and create a new Resource Group.
+Open the Azure Portal and create a new Resource Group.
 
 **Azure CLI**
 
->When you have the Azure CLI ready on your computer, you also could use those:
+When you have the Azure CLI ready on your computer, you also could use those:
 
->See the [official documentation](https://docs.microsoft.com/en-us/cli/azure/group?view=azure-cli-latest#az-group-create) for more details.
+See the [official documentation](https://docs.microsoft.com/en-us/cli/azure/group?view=azure-cli-latest#az-group-create) for more details.
 
->```
+```
 az group create --location westus --name CPResourceGroup
 ```
 
@@ -39,10 +39,10 @@ The host can use a very small server e.g. Standard_B1s or Basic_A1 as no compute
 
 **Azure Portal**
 
->Open the Azure Portal and create the Bastion Host.
+Open the Azure Portal and create the Bastion Host.
 Place the host into the the new Resource Group and in the same region as you will use for your Kubernetes Cluster.
 
-> * Use CentOS as OS for the Bastion Host. Other Linux systems should also be possible as long as you can install Docker CE onto them.
+* Use CentOS as OS for the Bastion Host. Other Linux systems should also be possible as long as you can install Docker CE onto them.
 All provided scripts are created on CentOS or RHEL Server. They are not tested with other Linux distributions. 
 * Open port 22 (SSH) to access your Bastion Host from everywhere.
 * Place your SSH Public Key into the configuration so you can use SSH Key authentication. When you use Putty, use PuttyGen to generate a new private key and to display the RSA public key.
