@@ -108,6 +108,16 @@ AZClusterName=CPCluster
 AZDNSPrefix=CP1
 AZCluserNodes=6
 AZClusterServer=Standard_B4ms
+ic_admin_user=admin_user
+ic_admin_password=admin_password
+ic_internal=ic_internal
+ic_front_door=ic_front_door
+ic_http_server=ic_http_server
+master_ip=
+# "elasticsearch customizer orientme"
+starter_stack_list="elasticsearch"
+# for test environments with just one node set to false.
+nodeAffinityRequired=true
 EOF
 ```
 
@@ -436,7 +446,7 @@ More details can be found in the [IBM Knowledge Center](https://www.ibm.com/supp
 
 ```
 # Load our environment settings
-~ ./settings.sh
+. ~/settings.sh
 
 # Create kubernetes secret myregkey
 kubectl -n connections create secret docker-registry myregkey \
@@ -498,17 +508,72 @@ kubectl taint nodes <node> dedicated=infrastructure:NoSchedule --overwrite
 
 This chapter simply follows the instructions from IBM: <https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_services_intro.html>
 
+All shown commands use as much default values as possible. Check IBM documentation for more options.
+
+
 ### 4.5.1 Bootstrapping the Kubernetes cluster
 
 [Bootstrapping the Kubernetes Cluster](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_bootstrap.html)
+
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=bootstrap microservices_connections/hybridcloud/helmbuilds/bootstrap-0.1.0-20181008-114142.tgz \
+--set \
+image.repository=${AZRegistryName}.azurecr.io/connections,\
+env.set_ic_admin_user=$ic_admin_user,\
+env.set_ic_admin_password=$ic_admin_password,\
+env.set_ic_internal=$ic_internal,\
+env.set_master_ip=$master_ip,\
+env.set_starter_stack_list="$starter_stack_list",\
+env.skip_configure_redis=true
+
+```
+
 
 ### 4.5.2 Installing the Component Pack's connections-env
 
 [Installing the Component Pack's connections-env](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_connections-env.html)
 
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=connections-env microservices_connections/hybridcloud/helmbuilds/connections-env-0.1.40-20181011-103145.tgz \
+--set \
+onPrem=true,\
+createSecret=false,\
+ic.host=$ic_front_door,\
+ic.internal=$ic_http_server,\
+ic.interserviceOpengraphPort=443,\
+ic.interserviceConnectionsPort=443,\
+ic.interserviceScheme=https
+
+```
+
+
 ### 4.5.3 Installing the Component Pack infrastructure
 
 [Installing the Component Pack infrastructure](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_infrastructure.html)
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=infrastructure microservices_connections/hybridcloud/helmbuilds/infrastructure-0.1.0-20181014-210242.tgz \
+--set \
+global.onPrem=true,\
+global.image.repository=${AZRegistryName}.azurecr.io/connections,\
+mongodb.createSecret=false,\
+appregistry-service.deploymentType=hybrid_cloud
+
+```
+
 
 ### 4.5.4 Installing Orient Me
 
@@ -517,6 +582,20 @@ This chapter simply follows the instructions from IBM: <https://www.ibm.com/supp
 ### 4.5.5 Installing Elasticsearch
 
 [Installing Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_es.html)
+
+**Attention: In case you have only one node or did not taint the nodes for elastic search set `nodeAffinityRequired=false`.
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=elasticsearch microservices_connections/hybridcloud/helmbuilds/elasticsearch-0.1.0-20180921-115419.tgz \
+--set \
+image.repository=${AZRegistryName}.azurecr.io/connections,\
+nodeAffinityRequired=$nodeAffinityRequired
+
+```
 
 ### 4.5.6 Installing Customizer (mw-proxy)
 
