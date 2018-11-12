@@ -1,1 +1,3 @@
 theme: jekyll-theme-cayman
+title: IBM Component Pack on managed Kubernetes
+description: This documentation provides information and installation guidelines to get IBM Connections Component Pack running on a managed Kubernetes service on one of the main cloud providers.
