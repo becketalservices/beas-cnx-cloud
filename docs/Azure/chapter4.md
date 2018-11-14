@@ -13,9 +13,9 @@ IBM provides the relevant documentation here: <https://www.ibm.com/support/knowl
 
 IBM already created some helper files to create the persistent volumes. As we use Azure File and not  NFS we need a modified version.<br>
 Please check the IBM documentation for more details on the available parameters.<br>
-The script below will create all storages except customizer with its default sizes on our [azure file store which was created earlier](chapter1.html#1-6-create-a-azure-file-storage).
+The script below will create all storages except customizer with its default sizes on our [azure file store which was created earlier](chapter1.html#16-create-a-azure-file-storage).
 
-The customizer file store was created earlier: [3.2 Create the customizer persistent storage](chapter3.html#3-2-create-the-customizer-persistent-storage).
+The customizer file store was created earlier: [3.2 Create the customizer persistent storage](chapter3.html#32-create-the-customizer-persistent-storage).
 
 
 **Attention: The reclaim policy is currently set to Delete. This will delete your storage and data in case you delete the pvc. This is different from what IBM creates with their helm chart. Do not run `helm delete connections-volumes` when you want to keep your data.**
@@ -40,7 +40,7 @@ helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
 ## 4.2 Create Docker Registry pull secret
 
 IBM Component Pack uses a kubernetes secret to store the access credentials for the docker registry.
-Use the credentials of the service principal we created earlier in [Create a service principal user to access your Docker Registry](chapter1.html#1-4-create-a-service-principal-user-to-access-your-docker-registry).
+Use the credentials of the service principal we created earlier in [Create a service principal user to access your Docker Registry](chapter1.html#14-create-a-service-principal-user-to-access-your-docker-registry).
 
 More details can be found in the [IBM Knowledge Center](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs.html).
 
