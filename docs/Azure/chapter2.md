@@ -16,8 +16,16 @@ az aks get-credentials --resource-group $AZResourceGroup --name $AZClusterName
 
 ```
 
-To test your connections to your cluster and check your nodes run: `kubectl get nodes`
+To test your connections to your cluster and check your nodes run:
 
+```
+# Get Client and Server version:
+kubectl version
+
+# Get node information:
+kubectl get nodes
+
+```
 
 ## 2.2 Install helm
 
@@ -41,7 +49,10 @@ The given instructions are based on this instructions: <https://github.com/helm/
 To create the service account, allow helm to manage the whole cluster and configure helm to use it, run this commands:
 
 ```
-kubectl apply -f helm/rbac-config.yaml
+# Create rbac configuration for helm
+kubectl apply -f beas-cnx-cloud/Azure/helm/rbac-config.yaml
+
+# Initialize helm and deploy server side tiller component
 helm init --service-account tiller
 
 ```
@@ -58,7 +69,7 @@ The instructions about the docker installation are taken from the [IBM Documenta
 For the installation run the script:
 
 ```
-bash scripts/install_docker.sh
+bash beas-cnx-cloud/Azure/scripts/install_docker.sh
 
 ```
 

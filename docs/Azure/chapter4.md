@@ -65,6 +65,8 @@ The IBM instructions are found here: <https://www.ibm.com/support/knowledgecente
 
 Modify the -st parameter to your needs. When you omit this parameter, all images are uploaded. <br>As we just remove the `docker login` command from the script, the username and password parameters are still mandatory but irrelevant.
 
+When the task is finished and you choose to upload all images, 3.5 GB of data were uploaded to your registry.
+
 ```
 # Load our environment settings
 . ~/settings.sh
@@ -81,7 +83,10 @@ sed -i "s/^docker login/#docker login/" setupImages.sh
 # Push the required images to your registry.
 # In case of problems or you need more images, you can rerun this command at any time.
 # Docker will upload only what is not yet in the registry.
-./setupImages.sh -dr ${AZRegistryName}.azurecr.io -u dummy -p dummy -st customizer,elasticsearch,orientme
+./setupImages.sh -dr ${AZRegistryName}.azurecr.io \
+  -u dummy \
+  -p dummy \
+  -st customizer,elasticsearch,orientme
 
 ```
 
@@ -99,8 +104,13 @@ For details instructions from IBM see here: <https://www.ibm.com/support/knowled
 kubectl get nodes
 
 # For each node, you want to taint run:
-kubectl label nodes <node> type=infrastructure --overwrite 
-kubectl taint nodes <node> dedicated=infrastructure:NoSchedule --overwrite 
+node=<node name>
+kubectl drain $node --force --delete-local-data --ignore-daemonsets
+kubectl label nodes $node type=infrastructure --overwrite 
+kubectl taint nodes $node dedicated=infrastructure:NoSchedule \
+  --overwrite
+kubectl uncordon $node
+ 
 
 ```
 
@@ -160,6 +170,8 @@ ic.interserviceScheme=https
 
 [Installing the Component Pack infrastructure](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_infrastructure.html)
 
+**Only relevant for orientme and customizer**
+
 ```
 # Load our environment settings
 . ~/settings.sh
@@ -179,11 +191,36 @@ appregistry-service.deploymentType=hybrid_cloud
 
 [Installing Orient Me](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_om.html)
 
+**Only relevant for orientme**
+
+When you do not use ISAM:
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=orientme microservices_connections/hybridcloud/helmbuilds/orientme-0.1.0-20181014-210314.tgz \
+--set \
+global.onPrem=true,\
+global.image.repository=${AZRegistryName}.azurecr.io/connections,\
+orient-web-client.service.nodePort=30001,\
+itm-services.service.nodePort=31100,\
+mail-service.service.nodePort=32721,\
+community-suggestions.service.nodePort=32200
+
+```
+
+Check if all pods are running: `kubectl get pods -n connections`
+
+
 ### 4.5.5 Installing Elasticsearch
 
 [Installing Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_es.html)
 
-**Attention: In case you have only one node or did not taint the nodes for elastic search set `nodeAffinityRequired=false`.
+**Attention: In case you have only one node or did not taint the nodes for elastic search set `nodeAffinityRequired=false`.**
+
+**Only relevant for elasitcsearch**
 
 ```
 # Load our environment settings
@@ -197,13 +234,114 @@ nodeAffinityRequired=$nodeAffinityRequired
 
 ```
 
+Check if all pods are running: `kubectl get pods -n connections -o wide`
+
+
 ### 4.5.6 Installing Customizer (mw-proxy)
 
 [Installing Customizer (mw-proxy)](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_customizer.html)
 
+**Only relevant for curstomizer**
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=mw-proxy microservices_connections/hybridcloud/helmbuilds/mw-proxy-0.1.0-20181012-071823.tgz \
+--set \
+image.repository=${AZRegistryName}.azurecr.io/connections,\
+deploymentType=hybrid_cloud
+
+```
+
+Check if all pods are running: `kubectl get pods -n connections`
+
+
 ### 4.5.7 Installing tools for monitoring and logging
 
-This chapter needs more attension....
+#### 4.5.7.1 Setting up Elastic Stack
+
+
+##### 4.5.7.1.1 Installing Elastic Stack
+
+
+##### 4.5.7.1.2 Setting up the index patterns in Kibana
+
+
+##### 4.5.7.1.3 Filtering out logs
+
+
+##### 4.5.7.1.4 Using the Elasticsearch Curator
+
+
+#### 4.5.7.2 Installing the Kubernetes web-based dashboard
+
+Depending on how you set up your Azrue AKS instance, the dashboard is already installed.
+
+When you used my script from [1.5 Create your Azure Kubernetes Environment](chapter1.html#15-create-your-azure-kubernetes-environment) the monitoring is already installed.<br>
+You can see that pods named heapster and kubernetes-dashboard are running when you check the running pods in the kube-system namespace: `kubectl -n kube-system get pods`
+
+As our cluster is rbac enabled, run this command to give the dashboard the required rights:
+
+```
+kubectl create clusterrolebinding kubernetes-dashboard --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
+
+```
+
+Follow the instructions from Microsoft to access your dashboard: <https://docs.microsoft.com/en-us/azure/aks/kubernetes-dashboard>
+
+#### 4.5.7.3 Installing the Sanity dashboard
+
+[Installing the Sanity dashboard](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_sanity.html)
+
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+
+# Install Sanity Helm chart
+helm install \
+--name=sanity microservices_connections/hybridcloud/helmbuilds/sanity-0.1.8-20181010-163810.tgz \
+--set \
+image.repository=${AZRegistryName}.azurecr.io/connections
+
+# Install Sanity Watcher Helm chart
+helm install \
+--name=sanity-watcher microservices_connections/hybridcloud/helmbuilds/sanity-watcher-0.1.0-20180830-052154.tgz \
+--set \
+image.repository=${AZRegistryName}.azurecr.io/connections
+
+```
+
+Check if all pods are running: `kubectl get pods -n connections`
+
+To access your sanity dashboard, you can use the kubernetes proxy on your local desktop.
+
+1. Make sure you have configured your local kubectl command correctly. See [2.1 Install and configure kubectl](chapter2.html#21-install-and-configure-kubectl).
+2. Make sure you have run az login
+
+run `kubectl proxy --port=8002` on your local computer to start the local proxy service.
+
+Use your browser to access the sanity dashboard via: <http://127.0.0.1:8002/api/v1/namespaces/connections/services/http:sanity:3000/proxy>
 
 
 ## 4.6 Test
+
+### 4.6.1 Check installed helm packages
+
+To check which helm charts you installed run: `helm list`
+
+### 4.6.2 Check running pods
+
+To check which applications are running, run: `kubectl -n connetions get pods`<br>
+All pods should shown as running.
+
+See IBM Documentation for more commands: <https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_troubleshoot_intro.html>
+
+
+### 4.6.3 Kubernetes Dashboard
+
+Use the installed Kubernetes Dashboard to inspect your infrastructure. See [4.5.7.2 Installing the Kubernetes web-based dashboard](#4572-installing-the-kubernetes-web-based-dashboard)
+

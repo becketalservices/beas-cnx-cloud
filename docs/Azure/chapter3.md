@@ -29,6 +29,7 @@ bash beas-cnx-cloud/Azure/scripts/create_sc.sh
 
 # run to apply the configuration
 kubectl apply -f azure_sc.yaml
+
 ```
 
 To check that the storage class has been created run `kubectl get storageclass azurefile`

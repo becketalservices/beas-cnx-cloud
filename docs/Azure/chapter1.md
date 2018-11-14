@@ -1,6 +1,8 @@
 # 1. Create Kubernetes infrastructure on Azure
 
-Choose an Azure region that suits your needs. See [Quotas and region availability for Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/container-service-quotas) for more details.
+Choose an Azure region that suits your needs. See [Quotas and region availability for Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/container-service-quotas) for more details.<br>
+Make sure your region has enough resources available. When you careate a cluster with 6 nodes, using Standard_B4ms servers, you need 24 free regional vCPUs and 24 free Standard BS vCPUs available.
+
 
 ## 1.1 Prepare Azure Environment and Administrative Console
 
@@ -125,7 +127,10 @@ See the [az acr create](https://docs.microsoft.com/en-us/cli/azure/acr?view=azur
 . ~/settings.sh
 
 # Create our Docker Registry
-az acr create --resource-group $AZResourceGroup --name $AZRegistryName --sku Basic
+az acr create --resource-group $AZResourceGroup \
+  --name $AZRegistryName \
+  --location $AZRegion \
+  --sku Basic
 
 ```
 When you do not use our current computer to publish images, there is no need to login to the registry yet.
@@ -148,11 +153,11 @@ Write down the ID and password. We need this information later to create the kub
 
 ## 1.5 Create your Azure Kubernetes Environment (AKS)
 
-By now, you have a Resource Group to group your environment, a Docker Registry to store the images and a Azure File Share to store your persistent data with ReadOnlyMany access.
+By now, you have a Resource Group to group your environment and a Docker Registry to store the images. The Azure File Share to store your persistent data with ReadWriteMany access will be crated later.
 
 As next step, we can create the Kubernetes Cluster.
 
-* Make shure you have filled in the settings.sh from above when you want to use the script.
+* Make sure you have filled in the settings.sh from above when you want to use the script.
 You can modify the script to your needs.
 * The script will instruct the command to create ssh keys to access the VMs for you. If you want to use your already existing ssh keys, modify the script accordingly.
 * The script will instruct the command to crate a service principal account for you. If you want to use your already existing service principal account, modify the script accordingly.
@@ -160,7 +165,7 @@ You can modify the script to your needs.
 To start the generation process run:
 
 ```
-bash scripts/install_az.sh
+bash beas-cnx-cloud/Azure/scripts/create_aks.sh
 
 ```
 
@@ -186,7 +191,9 @@ Create your new storage account:
 . ~/settings.sh
 
 # Get RG
-AZNodeRG=$(az aks show --resource-group $AZResourceGroup --name $AZClusterName  --query "nodeResourceGroup"  | sed "s/\"//g")
+AZNodeRG=$(az aks show --resource-group $AZResourceGroup \
+  --name $AZClusterName \
+  --query "nodeResourceGroup"  | sed "s/\"//g")
 
 # Create account
 az storage account create --resource-group $AZNodeRG \
@@ -215,12 +222,16 @@ Make sure you remember this key. It looks like this: `"soh3BvSw895mvxrl0MgeoPw..
 
 Create the file share using your storage account data.
 
+!!! Not Needed !!!
+
 ```
 # Load our environment settings
 . ~/settings.sh
 
 # Create Azure file share
-az storage share create --account-name $AZStoreAccount --account-key "$AZStoreKey" --name "$AZStoreName"
+az storage share create --account-name $AZStoreAccount \
+  --account-key "$AZStoreKey" \
+  --name "$AZStoreName"
 
 ```
 
