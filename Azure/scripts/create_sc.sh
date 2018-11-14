@@ -13,5 +13,5 @@ mountOptions:
 - gid=65533
 parameters:
   storageAccount: $AZStoreAccount
-reclaimPolicy: Delete
+reclaimPolicy: $AZStoreReclaim 
 EOF
