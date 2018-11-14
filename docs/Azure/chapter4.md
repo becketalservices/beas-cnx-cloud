@@ -343,5 +343,5 @@ See IBM Documentation for more commands: <https://www.ibm.com/support/knowledgec
 
 ### 4.6.3 Kubernetes Dashboard
 
-Use the installed Kubernetes Dashboard to inspect your infrastructure. See [4.5.7.2 Installing the Kubernetes web-based dashboard](#4572-installing-the-kubernetes-web-based-dashboard)
+Use the installed Kubernetes Dashboard to inspect your infrastructure. See [4.5.7.2 Installing the Kubernetes web-based dashboard](chapter4.html#4572-installing-the-kubernetes-web-based-dashboard)
 
