@@ -18,7 +18,7 @@ Experienced users could also use the Azure CLI.
 
 ### 1.1.1 Create Resource Group
 
-To group our infrastructure, I recommend to create an own resource group.
+To group our infrastructure, I recommend to create a separate resource group.
 
 **Azure Portal**
 
@@ -87,7 +87,7 @@ After installation make sure, you can authorized yourself using `az login`.
 
 ### 1.2.3 Configure your environment
 
-As some variables like your resource group name or the region is queries more often, create a file with this variables.
+As some variables like your resource group name or the region is required more often, create a file with this variables.
 
 * Make sure you use your own `AZStoreAccount` name as this need to be unique.
 * Make sure you use your own `AZDNSPrefix`. It needs to be unique.
@@ -606,20 +606,20 @@ nodeAffinityRequired=$nodeAffinityRequired
 This chapter needs more attension....
 
 
-## Test
+## 4.6 Test
 
-# Configure Ingress
+# 5. Configure Ingress
 
-## Elastic Search
+## 5.1 Elastic Search
 
-## Redis Traffic
+## 5.2 Redis Traffic
 
-## HTTP Services
+## 5.3 HTTP Services
 
-### Orient Me
+### 5.3.1 Orient Me
 
-### Filebrowser
+### 5.3.2 Filebrowser
 
-### Customizer
+### 5.3.3 Customizer
 
 
