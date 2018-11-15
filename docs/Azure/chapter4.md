@@ -9,7 +9,7 @@ Just extract them: `unzip IC-ComponentPack-6.0.0.6.zip`
 
 ## 4.1 Create persistent volumes
 
-IBM provides the relevant documentation here: <https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_persist_vols.html>
+IBM provides the relevant documentation on page [Persistent volumes](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_persist_vols.html).
 
 IBM already created some helper files to create the persistent volumes. As we use Azure File and not  NFS we need a modified version.<br>
 Please check the IBM documentation for more details on the available parameters.<br>
@@ -61,7 +61,7 @@ kubectl -n connections create secret docker-registry myregkey \
 IBM provides a script to upload all necessary images to your registry. Unfortunately it requires that you type in you username and password for the registry. 
 Assuming that your account you are working with Azure Cli, has the rights to upload images to the registry, you can modify the script to ignore the username password and just upload the images using your implicit credentials.
 
-The IBM instructions are found here: <https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_push_docker_images.html>
+The IBM instructions are found on page [Pushing Docker images to the Docker registry](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_push_docker_images.html).
 
 Modify the -st parameter to your needs. When you omit this parameter, all images are uploaded. <br>As we just remove the `docker login` command from the script, the username and password parameters are still mandatory but irrelevant.
 
@@ -97,7 +97,7 @@ In case you have pushed all images to the registry or you are shure you do not n
 When you want to have dedicated nodes for Elastic Search you need to taint and label them.<br>
 When you just have 1 node, skip this step.
 
-For details instructions from IBM see here: <https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_label_es_workers.html>
+For details instructions from IBM see page [Labeling and tainting worker nodes for Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_label_es_workers.html).
 
 ```
 # Get the available nodes
@@ -116,7 +116,7 @@ kubectl uncordon $node
 
 ## 4.5 Deploy Component Pack to Cluster
 
-This chapter simply follows the instructions from IBM: <https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_services_intro.html>
+This chapter simply follows the instructions from IBM on page [Installing Component Pack services](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_services_intro.html).
 
 All shown commands use as much default values as possible. Check IBM documentation for more options.
 
@@ -338,7 +338,7 @@ To check which helm charts you installed run: `helm list`
 To check which applications are running, run: `kubectl -n connetions get pods`<br>
 All pods should shown as running.
 
-See IBM Documentation for more commands: <https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_troubleshoot_intro.html>
+See IBM Documentation for more commands on page [Troubleshooting Component Pack installation or upgrade](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_troubleshoot_intro.html).
 
 
 ### 4.6.3 Kubernetes Dashboard

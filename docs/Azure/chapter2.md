@@ -44,7 +44,7 @@ mv linux-amd64/helm /usr/bin/helm
 
 As we have rbac enabled on our cluster, we need to create an service account so that helm can act on our cluster.
 
-The given instructions are based on this instructions: <https://github.com/helm/helm/blob/master/docs/rbac.md>
+The given instructions are based on [Role-based Access Control](https://github.com/helm/helm/blob/master/docs/rbac.md).
 
 To create the service account, allow helm to manage the whole cluster and configure helm to use it, run this commands:
 

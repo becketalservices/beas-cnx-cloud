@@ -1,7 +1,11 @@
 # 1. Create Kubernetes infrastructure on Azure
 
 Choose an Azure region that suits your needs. See [Quotas and region availability for Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/container-service-quotas) for more details.<br>
-Make sure your region has enough resources available. When you careate a cluster with 6 nodes, using Standard_B4ms servers, you need 24 free regional vCPUs and 24 free Standard BS vCPUs available.
+Make sure your region has enough resources available. When you create a cluster with 6 nodes, using Standard_B4ms servers, you need 24 free regional vCPUs and 24 free Standard BS vCPUs available.
+
+Take care about the necessary network configuration. There are 2 options available.
+1. Create the Kubernetes Cluster in a separate VNet. <br>When choosing this option, the services are reachable via public IP only or you need to create VNet Peering to be able to reach the internal IPs. 
+2. Create the Kubernetes Cluster in an existing VNet. <br>When choosing this option, some planning is necessary.
 
 
 ## 1.1 Prepare Azure Environment and Administrative Console
@@ -154,6 +158,8 @@ Write down the ID and password. We need this information later to create the kub
 ## 1.5 Create your Azure Kubernetes Environment (AKS)
 
 By now, you have a Resource Group to group your environment and a Docker Registry to store the images. The Azure File Share to store your persistent data with ReadWriteMany access will be crated later.
+
+** The given script creates the cluster in a separate VNet. In case you want to use other network settings, see the Microsoft Documentation first.**
 
 As next step, we can create the Kubernetes Cluster.
 
