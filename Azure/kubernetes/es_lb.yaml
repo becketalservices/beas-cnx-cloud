@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: elasticsearch
+    role: client
+  name: elasticsearch-lb
+  namespace: connections
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: http
+    port: 30099
+    protocol: TCP
+    targetPort: 9200 
+  selector:
+    component: elasticsearch
+    role: client
+  type: LoadBalancer 
