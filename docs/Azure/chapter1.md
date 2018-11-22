@@ -1,4 +1,4 @@
-# 1. Create Kubernetes infrastructure on Azure
+# 1 Create Kubernetes infrastructure on Azure
 
 Choose an Azure region that suits your needs. See [Quotas and region availability for Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/container-service-quotas) for more details.<br>
 Make sure your region has enough resources available. When you create a cluster with 6 nodes, using Standard_B4ms servers, you need 24 free regional vCPUs and 24 free Standard BS vCPUs available.
@@ -92,6 +92,7 @@ As some variables like your resource group name or the region is required more o
 * Do not used spaces in the names and the AZStoreAccount must be lower case letters and numbers only.
 * Use only lower case letters for your Docker registry name. This is a Docker requirement.
 * Choose the right Server for the cluster. I choose Standard_B4ms as this has enough RAM and CPU but is cheaper than then the Standard_D4_v3.
+* To create a non HA environment 4 Nodes are enough. When you require that you have enough resources available when one node fails, you need 6 nodes.
 
 ```
 # Write our environment settings
@@ -104,17 +105,16 @@ AZRegistryName=cpcontainerregistry
 AZRegistryPrincipal=CP_Registry_Reader
 AZClusterName=CPCluster
 AZDNSPrefix=CP1
-AZCluserNodes=6
+AZCluserNodes=4
 AZClusterServer=Standard_B4ms
 ic_admin_user=admin_user
 ic_admin_password=admin_password
 ic_internal=ic_internal
 ic_front_door=ic_front_door
-ic_http_server=ic_http_server
 master_ip=
 # "elasticsearch customizer orientme"
-starter_stack_list="elasticsearch"
-# for test environments with just one node set to false.
+starter_stack_list="elasticsearch customizer orientme"
+# for test environments with just one node or no taint nodes, set to false.
 nodeAffinityRequired=true
 EOF
 ```
@@ -137,7 +137,7 @@ az acr create --resource-group $AZResourceGroup \
   --sku Basic
 
 ```
-When you do not use our current computer to publish images, there is no need to login to the registry yet.
+When you do not use your current computer to publish images, there is no need to login to the registry yet.
 
 ## 1.4 Create a service principal user to access your Docker Registry 
 
@@ -222,22 +222,4 @@ echo Key: $AZStoreKey
 ```
 
 Make sure you remember this key. It looks like this: `"soh3BvSw895mvxrl0MgeoPw...."`
-
-
-### 1.6.2 Create an Azure file share
-
-Create the file share using your storage account data.
-
-!!! Not Needed !!!
-
-```
-# Load our environment settings
-. ~/settings.sh
-
-# Create Azure file share
-az storage share create --account-name $AZStoreAccount \
-  --account-key "$AZStoreKey" \
-  --name "$AZStoreName"
-
-```
 

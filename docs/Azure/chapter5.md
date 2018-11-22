@@ -1,220 +1,382 @@
-# 5. Configure Ingress
+# 5 Install Component Pack
 
-IBM uses the Kubernetes Feature that all services using NodePort are accessible through all Nodes with the same port. As the Master Node is a single server or has a Load Balancer in front in case of multiple Master Nodes, the node port can always be reached through the master node or the master load balancer.<br>
-When using managed Kubernetes, the master server can not used for this purpose. Microsoft (as all other cloud providers) do not expose the ports on the master node. Therefore other techniques to access the services must be used.<br>
+We need the installation files from IBM to continue.
 
-There might also be some more advanced networking techniques involved. Creating a internal Load Balancer will create an IP end point in the same VNet as your Kubernetes Nodes. When your Connections instance is located in a different VNet, you need to enable VNet Peering to be able to reach the Load Balancer IP.
-See the Microsoft Documentation about [Virtual network peering](https://docs.microsoft.com/en-us/azure/virtual-network/virtual-network-peering-overview). 
+Download the files to your Bastion host and extract them. In case you have your files on a Azure file share or AWS S3, you can use my [s3scripts](https://github.com/MSSputnik/s3scripts) to access your files.
+
+Just extract them: `unzip IC-ComponentPack-6.0.0.6.zip`
 
 
-## 5.1 Elastic Search
+## 5.1 Create persistent volumes
 
-An internal Load Balancer can be used. See the Kubernetes documentation about internal [Load Balancers](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer).
+IBM provides the relevant documentation on page [Persistent volumes](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_persist_vols.html).
 
-As I assume that your Connections installation and your Component Pack installation do not communicate via public IP, an internal Load Balancer is created:
+IBM already created some helper files to create the persistent volumes. As we use Azure File and not  NFS we need a modified version.<br>
+Please check the IBM documentation for more details on the available parameters.<br>
+The script below will create all storages except customizer with its default sizes on our [azure file store which was created earlier](chapter1.html#16-create-a-azure-file-storage).
 
+The customizer file store was created earlier: [3.2 Create the customizer persistent storage](chapter3.html#32-create-the-customizer-persistent-storage).
+
+In my test environment I used the AKS default store as persistent storage. This will create additionall virulat hard disks that get attached to your worker nodes as required. This attachment process takes up to 1 minute and when a node becomes unresponsive, the disks must be detached manually before they can get attached to a working node. As alternative you can use azurefile as persisten storage. This is much more loosely coupled to your infrastructure but much slower.<br>
+There is an article about azure disks vs. azure file for persistent volumes on Azure: -- Unfortunately I did not find it again. --
+
+**Attention: The reclaim policy is currently set to Delete. This will delete your storage and data in case you delete the pvc. This is different from what IBM creates with their helm chart. Do not run `helm delete connections-volumes` when you want to keep your data.**
+ 
 ```
-kubectl apply -f beas-cnx-cloud/Azure/kubernetes/es_lb.yaml
-
-```
-
-To get the IP of your Load Balancer run: (It takes about 1-2 minutes until the external ip is available)
-
-```
-kubectl -n connections get service elasticsearch-lb
-
-```
-
-To check if the service is available and answers:
-
-```
-curl -k -v https://<external ip>:30099
-
-```
-
-The expected result of the curl command is the error `curl: (35) NSS: client certificate not found (nickname not specified)` which shows that some HTTPS handshake took place.
-
-Now configure 
-
-* Elastic Search as described by IBM on page [Configuring the Elasticsearch Metrics component](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_config_es_intro.html).
-* Type Ahead Search as described by IBM on page [Configuring type-ahead search with Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/inst_tas_with_es_intro.html).
-
-
-## 5.2 Configuring the Orient Me component
-
-### 5.2.1 Configuring the HTTP server for Orient Me
-
-Create the appropriate Load Balancer resources for Customizer. Run:
-
-```
-# OrientMe Web Client
-kubectl apply -f beas-cnx-cloud/Azure/kubernetes/owc_lb.yaml
-
-# itm services
-kubectl apply -f beas-cnx-cloud/Azure/kubernetes/is_lb.yaml
-
-# community suggestions
-kubectl apply -f beas-cnx-cloud/Azure/kubernetes/cs_lb.yaml
-
+# Run the Helm Chart to create the PVCs on our default storage
+# Use storageClassName=azurefile to store your persistent data on Azure File.
+# The Helm Chart is a modified version from IBM. It supports the same parameters.
+# You can specify more parameters if required, especially when you do not want
+# all storages or different sizes.
+helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
+  --name=connections-volumes \
+  --set storageClassName=default \
+  --set customizer.enabled=false \
+  --set solr.enabled=true \
+  --set zk.enabled=true \
+  --set es.enabled=true \
+  --set mongo.enabled=true
+ 
 ```
 
-Get the external IPs used for the services above and use them in the configuration.
+
+
+## 5.2 Create Docker Registry pull secret
+
+IBM Component Pack uses a kubernetes secret to store the access credentials for the docker registry.
+Use the credentials of the service principal we created earlier in [Create a service principal user to access your Docker Registry](chapter1.html#14-create-a-service-principal-user-to-access-your-docker-registry).
+
+More details can be found in the [IBM Knowledge Center](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs.html).
 
 ```
-# Get OrientMe Web Client External IP
-kubectl -n connections get service orient-web-client-lb
+# Load our environment settings
+. ~/settings.sh
 
-# Get itm services External IP
-kubectl -n connections get service itm-services-lb
+# Set your credentials
+service_principal_id=<Service principal ID>
+service_principal_password=<Service principal password>
 
-# Get community suggestions External IP
-kubectl -n connections get service community-suggestions-lb
+# Create kubernetes secret myregkey
+kubectl -n connections create secret docker-registry myregkey \
+  --docker-server=${AZRegistryName}.azurecr.io \
+  --docker-username=$service_principal_id \
+  --docker-password=$service_principal_password
 
 ```
 
-To configure OrientMe, follow the instructions from IBM on page [Configuring the Orient Me component](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_config_om_intro.html).
+## 5.3 Upload Docker images to registry
 
+IBM provides a script to upload all necessary images to your registry. Unfortunately it requires that you type in you username and password for the registry. 
+Assuming that your account you are working with Azure Cli, has the rights to upload images to the registry, and the account you set up as pull secret has not, you can modify the script to ignore the username password and just upload the images using your implicit credentials.
 
-### 5.2.2 Enabling and securing Redis traffic to Orient Me
+The IBM instructions are found on page [Pushing Docker images to the Docker registry](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_push_docker_images.html).
 
-An internal Load Balancer can be used. See the Kubernetes documentation about internal [Load Balancers](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer).
+Modify the -st parameter to your needs. When you omit this parameter, all images are uploaded. <br>As we just remove the `docker login` command from the script, the username and password parameters are still mandatory but irrelevant.
 
-As I assume that your Connections installation and your Component Pack installation do not communicate via public IP, an internal Load Balancer is created:
-
-```
-kubectl apply -f beas-cnx-cloud/Azure/kubernetes/hap_lb.yaml
-
-```
-
-To get the IP of your Load Balancer run: (It takes about 1-2 minutes until the external ip is available)
+When the task is finished and you choose to upload all images, 3.5 GB of data were uploaded to your registry.
 
 ```
-kubectl -n connections get service haproxy-redis-lb
+# Load our environment settings
+. ~/settings.sh
 
-```
+# move into the support directory of the IBM CP installation files
+cd microservices_connections/hybridcloud/support
 
-To check if the service is available and answers. You can use telnet for this. Just type "auth test". There is no command prompt.
+# Modify the installation script to comment out the docker login command.
+sed -i "s/^docker login/#docker login/" setupImages.sh
 
-```
-telnet <external ip> 30379
-> auth test
-< -ERR invalid password
+# Login with your account to the docker registry
+az acr login --resource-group $AZResourceGroup --name $AZRegistryName
 
-```
-
-The expected result of the telnet command is the error `-ERR invalid password` which shows that the redis server answers.
-
-Now configure Elastic Search as described by IBM on page [Manually configuring Redis traffic to Orient Me](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_config_om_redis_enable.html).
-
-I have not tested yet, if you can secure the traffic.
-
-
-## 5.3 Customizer
-
-Create the appropriate Load Balancer resources for Customizer. Run:
-
-```
-# Middleware Proxy
-kubectl apply -f beas-cnx-cloud/Azure/kubernetes/mwp_lb.yaml
-
-# AppReg Client
-kubectl apply -f beas-cnx-cloud/Azure/kubernetes/ac_lb.yaml
-
-# AppReg Service
-kubectl apply -f beas-cnx-cloud/Azure/kubernetes/as_lb.yaml
+# Push the required images to your registry.
+# In case of problems or you need more images, you can rerun this command at any time.
+# Docker will upload only what is not yet in the registry.
+./setupImages.sh -dr ${AZRegistryName}.azurecr.io \
+  -u dummy \
+  -p dummy \
+  -st customizer,elasticsearch,orientme
 
 ```
 
-Get the external IPs used for the services above and use them in the configuration.
+In case you have pushed all images to the registry or you are shure you do not need more, you can remove the "images" directory and the download IC-ComponentPack-6.0.0.6.zip.zip so save disk space.
+
+## 5.4 Taint nodes for Elastic Search
+
+When you want to have dedicated nodes for Elastic Search you need to taint and label them.<br>
+When you just have 1 node or you do not want to use dedicated nodes for Elastic Search, skip this step.
+
+For details instructions from IBM see page [Labeling and tainting worker nodes for Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_label_es_workers.html).
+
+As Azure AKS does not yet node groups, you need to build your node group by yourself. To simplify the automation of this task and assuming that you usually have a equal number of nodes for standard and elastic search nodes (2/2 or 3/3) I created a script that automatically taint all nodes with odd order number as elastic search node and makes sure that nodes with even oder number does not have this taint.
+
+To use my script run:
 
 ```
-# Get Middleware Proxy External IP
-kubectl -n connections get service mw-proxy-lb
-
-# Get AppReg Client External IP
-kubectl -n connections get service appregistry-client-lb
-
-# Get AppReg Service External IP
-kubectl -n connections get service appregistry-service-lb
-
-```
-
-To configure customizer, follow the instructions from IBM on page [Configuring the Customizer component](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_config_customizer_intro.html).
-
-
-
-
-## 5.4 Filebrowser
-
-Create the appropriate Load Balancer resources for Customizer. Run:
-
-```
-# Fielbrowser Service
-kubectl apply -f beas-cnx-cloud/Azure/kubernetes/fb_lb.yaml
-
-```
-
-Get the external IPs used for the service above and use them in the configuration.
-
-```
-# Get Filebrowser External IP
-kubectl -n connections get service filebrowser-lb
-
-```
-
-Create the proxy settings in the HTTP Server configuration.<br>
-The settings look like this:
-
-```
-ProxyPass "/filebrowser" "http://<external ip>:31675/filebrowser"
-ProxyPassReverse "/filebrowser" "http://<external ip>:31675/filebrowser"
+# Run this script to taint all nodes with odd order number
+# The script detects all already taint nodes and does not taint them again.
+# To just correct the label and taint give 1 as option.
+# Before tainting, the node is drained when option 2 is given.
+bash beas-cnx-cloud/Azure/scripts/taint_nodes.sh <0|1|2>
 
 ```
 
 
-## 5.5 Sanity Check
-
-You can configure to view the sanity dashboard through the Connections HTTP Server. As the dashboard does not support authentication, the http server should restrict the access to this page.
-
-Create the appropriate Load Balancer resources for Customizer. Run:
+To do it manually use this commands:
 
 ```
-# Sanity Service
-kubectl apply -f beas-cnx-cloud/Azure/kubernetes/sanity_lb.yaml
+# Get the available nodes
+kubectl get nodes
 
-```
+# Node Name
+node=<node name>
 
-Get the external IPs used for the service above and use them in the configuration.
-
-```
-# Get Sanity Service External IP
-kubectl -n connections get service sanity-lb
-
-```
-
-
-In your HTTP Server configuration, add this location entry: The access to this location is allowed only from "source ip".
-Adjust the location configuration to your needs.
-
-To access the dashboard, use: `https://<connections url>/sanity/` . The / at the end is important!
-
-```
-<Location "/sanity">
-  Order Deny,Allow
-  Deny from all
-  Allow from <Source IP>
-  ProxyPass "http://<external ip>:31578"
-</Location>
+# For each node, you want to taint run:
+kubectl drain $node --force --delete-local-data --ignore-daemonsets
+kubectl label nodes $node type=infrastructure --overwrite 
+kubectl taint nodes $node dedicated=infrastructure:NoSchedule \
+  --overwrite
+kubectl uncordon $node
+ 
+# For each node, you want to remove the taint run:
+kubectl drain $node --force --delete-local-data --ignore-daemonsets
+kubectl label nodes $node type- 
+kubectl taint nodes $node dedicated-
+kubectl uncordon $node
 
 ```
 
+## 5.5 Deploy Component Pack to Cluster
 
-#5.6 Reverse Proxy for Customizer
+This chapter simply follows the instructions from IBM on page [Installing Component Pack services](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_services_intro.html).
 
-IBM just tells you to install a NGINX Server somewhere.<br>
-As we are on Kubernetes, we can use some of the techniques available there.<br>
-Feel free to use some different technique if you want.
+All shown commands use as much default values as possible. Check IBM documentation for more options.
 
-** Still under investigation **
 
+### 5.5.1 Bootstrapping the Kubernetes cluster
+
+[Bootstrapping the Kubernetes Cluster](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_bootstrap.html)
+
+**The master_ip is currently not set in the settings.sh as the master can not used to forward traffic. I assume that this configuration is for the automatic redis configuration. Probably creating the load balancer for redis at this point could give you the right IP address. For now I did not set the master_id and set "skip_configure_redis=true"**
+
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=bootstrap microservices_connections/hybridcloud/helmbuilds/bootstrap-0.1.0-20181008-114142.tgz \
+--set \
+image.repository=${AZRegistryName}.azurecr.io/connections,\
+env.set_ic_admin_user=$ic_admin_user,\
+env.set_ic_admin_password=$ic_admin_password,\
+env.set_ic_internal=$ic_internal,\
+env.set_master_ip=$master_ip,\
+env.set_starter_stack_list="$starter_stack_list",\
+env.skip_configure_redis=true
+
+```
+
+
+### 5.5.2 Installing the Component Pack's connections-env
+
+[Installing the Component Pack's connections-env](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_connections-env.html)
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=connections-env microservices_connections/hybridcloud/helmbuilds/connections-env-0.1.40-20181011-103145.tgz \
+--set \
+onPrem=true,\
+createSecret=false,\
+ic.host=$ic_front_door,\
+ic.internal=$ic_http_server,\
+ic.interserviceOpengraphPort=443,\
+ic.interserviceConnectionsPort=443,\
+ic.interserviceScheme=https
+
+```
+
+
+### 5.5.3 Installing the Component Pack infrastructure
+
+[Installing the Component Pack infrastructure](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_infrastructure.html)
+
+**Only relevant for orientme and customizer**
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=infrastructure microservices_connections/hybridcloud/helmbuilds/infrastructure-0.1.0-20181014-210242.tgz \
+--set \
+global.onPrem=true,\
+global.image.repository=${AZRegistryName}.azurecr.io/connections,\
+mongodb.createSecret=false,\
+appregistry-service.deploymentType=hybrid_cloud
+
+```
+
+
+### 5.5.4 Installing Orient Me
+
+[Installing Orient Me](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_om.html)
+
+**Only relevant for orientme**
+
+When you do not use ISAM:
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=orientme microservices_connections/hybridcloud/helmbuilds/orientme-0.1.0-20181014-210314.tgz \
+--set \
+global.onPrem=true,\
+global.image.repository=${AZRegistryName}.azurecr.io/connections,\
+orient-web-client.service.nodePort=30001,\
+itm-services.service.nodePort=31100,\
+mail-service.service.nodePort=32721,\
+community-suggestions.service.nodePort=32200
+
+```
+
+Check if all pods are running: `kubectl get pods -n connections`
+
+
+### 5.5.5 Installing Elasticsearch
+
+[Installing Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_es.html)
+
+**Attention: In case you have only one node or did not taint the nodes for elastic search set `nodeAffinityRequired=false`.**
+
+**Only relevant for elasitcsearch**
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=elasticsearch microservices_connections/hybridcloud/helmbuilds/elasticsearch-0.1.0-20180921-115419.tgz \
+--set \
+image.repository=${AZRegistryName}.azurecr.io/connections,\
+nodeAffinityRequired=$nodeAffinityRequired
+
+```
+
+Check if all pods are running: `kubectl get pods -n connections -o wide`
+
+
+### 5.5.6 Installing Customizer (mw-proxy)
+
+[Installing Customizer (mw-proxy)](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_customizer.html)
+
+**Only relevant for curstomizer**
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+helm install \
+--name=mw-proxy microservices_connections/hybridcloud/helmbuilds/mw-proxy-0.1.0-20181012-071823.tgz \
+--set \
+image.repository=${AZRegistryName}.azurecr.io/connections,\
+deploymentType=hybrid_cloud
+
+```
+
+Check if all pods are running: `kubectl get pods -n connections`
+
+
+### 5.5.7 Installing tools for monitoring and logging
+
+#### 5.5.7.1 Setting up Elastic Stack
+
+
+##### 5.5.7.1.1 Installing Elastic Stack
+
+
+##### 5.5.7.1.2 Setting up the index patterns in Kibana
+
+
+##### 5.5.7.1.3 Filtering out logs
+
+
+##### 5.5.7.1.4 Using the Elasticsearch Curator
+
+
+#### 5.5.7.2 Installing the Kubernetes web-based dashboard
+
+Depending on how you set up your Azrue AKS instance, the dashboard is already installed.
+
+When you used my script from [1.5 Create your Azure Kubernetes Environment](chapter1.html#15-create-your-azure-kubernetes-environment) the monitoring is already installed.<br>
+You can see that pods named heapster and kubernetes-dashboard are running when you check the running pods in the kube-system namespace: `kubectl -n kube-system get pods`
+
+As our cluster is rbac enabled, run this command to give the dashboard the required rights:
+
+```
+kubectl create clusterrolebinding kubernetes-dashboard \
+  --clusterrole=cluster-admin \
+  --serviceaccount=kube-system:kubernetes-dashboard
+
+```
+
+Follow the instructions from Microsoft to access your dashboard: <https://docs.microsoft.com/en-us/azure/aks/kubernetes-dashboard>
+
+#### 5.5.7.3 Installing the Sanity dashboard
+
+[Installing the Sanity dashboard](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_sanity.html)
+
+
+```
+# Load our environment settings
+. ~/settings.sh
+
+
+# Install Sanity Helm chart
+helm install \
+--name=sanity microservices_connections/hybridcloud/helmbuilds/sanity-0.1.8-20181010-163810.tgz \
+--set \
+image.repository=${AZRegistryName}.azurecr.io/connections
+
+# Install Sanity Watcher Helm chart
+helm install \
+--name=sanity-watcher microservices_connections/hybridcloud/helmbuilds/sanity-watcher-0.1.0-20180830-052154.tgz \
+--set \
+image.repository=${AZRegistryName}.azurecr.io/connections
+
+```
+
+Check if all pods are running: `kubectl get pods -n connections`
+
+To access your sanity dashboard, you can use the kubernetes proxy on your local desktop.
+
+1. Make sure you have configured your local kubectl command correctly. See [2.1 Install and configure kubectl](chapter2.html#21-install-and-configure-kubectl).
+2. Make sure you have run az login
+
+run `kubectl proxy --port=8002` on your local computer to start the local proxy service.
+
+Use your browser to access the sanity dashboard via: <http://127.0.0.1:8002/api/v1/namespaces/connections/services/http:sanity:3000/proxy>
+
+
+## 5.6 Test
+
+### 5.6.1 Check installed helm packages
+
+To check which helm charts you installed run: `helm list`
+
+### 5.6.2 Check running pods
+
+To check which applications are running, run: `kubectl -n connetions get pods`<br>
+All pods should shown as running.
+
+See IBM Documentation for more commands on page [Troubleshooting Component Pack installation or upgrade](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_troubleshoot_intro.html).
+
+
+### 5.6.3 Kubernetes Dashboard
+
+Use the installed Kubernetes Dashboard to inspect your infrastructure. See [5.5.7.2 Installing the Kubernetes web-based dashboard](chapter5.html#5572-installing-the-kubernetes-web-based-dashboard)
 

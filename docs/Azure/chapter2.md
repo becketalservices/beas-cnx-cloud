@@ -1,4 +1,4 @@
-# 2. Configure your Bastion Host as administration workstation
+# 2 Configure your Bastion Host as administration workstation
 
 ## 2.1 Install and configure kubectl
 
@@ -34,7 +34,8 @@ kubectl get nodes
 Download and extract the helm binaries:
 
 ```
-curl -L -o helm-v2.11.0-linux-amd64.tar.gz "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-amd64.tar.gz"
+curl -L -o helm-v2.11.0-linux-amd64.tar.gz \
+  "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-amd64.tar.gz"
 tar -zxvf helm-v2.11.0-linux-amd64.tar.gz
 mv linux-amd64/helm /usr/bin/helm
 

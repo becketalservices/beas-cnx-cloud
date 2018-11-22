@@ -1,347 +1,164 @@
-# 4. Install Component Pack
+# 4 Configure your Network
 
-We need the installation files from IBM to continue.
+When you want Customizer, you need to correct the network configuration at this early state. It is important as the installation of the Component Pack requires that all servers are reachable and that the correct host names are set up. Host names and access URLs could be changed later but this is not that simple and requires a lot of testing until everything is finally working as expected.
 
-Download the files to your Bastion host and extract them. In case you have your files on a Azure file share or AWS S3, you can use my [s3scripts](https://github.com/MSSputnik/s3scripts) to access your files.
+Please be aware: You need to change the access URL for your existing Connections instance which will prevent your users to access the data until you have configured the Kubernetes infrastructure to forward the traffic correctly which is hopefully the case at the end of this chapter.
 
-Just extract them: `unzip IC-ComponentPack-6.0.0.6.zip`
+This chapter will line out the tasks to get the new Kubernetes infrastructure to forward the traffic to the existing installation. The final Customizer configuration will be done later when everything is running.
 
+## 4.1 Change Service URL for your existing infrastructure
 
-## 4.1 Create persistent volumes
+Your existing infrastructure must have a different DNS name than the frontend ingress controller so that traffic can flow from the users through the ingress controller into your existing infrastructure. To avoid that the existing WebSphere servers start to communicate through the ingress controller what will produce a lot of unnecessary load, the DNS Names and service configurations must be adjusted.
 
-IBM provides the relevant documentation on page [Persistent volumes](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_persist_vols.html).
+### 4.1.1 Create new DNS entry for your existing front end
 
-IBM already created some helper files to create the persistent volumes. As we use Azure File and not  NFS we need a modified version.<br>
-Please check the IBM documentation for more details on the available parameters.<br>
-The script below will create all storages except customizer with its default sizes on our [azure file store which was created earlier](chapter1.html#16-create-a-azure-file-storage).
+Create a new DNS entry for your existing HTTP Server or front end load balancer. For simplicity you could append "-backend" to your existing DNS name. e.g. cnx.demo.com will become cnx-backend.demo.com. Create the same type of DNS entry as the existing one. When you have a A record, create a new A record with the same IP. If you have a CNAME, create a new CNAME record with the same value as the existing one.
 
-The customizer file store was created earlier: [3.2 Create the customizer persistent storage](chapter3.html#32-create-the-customizer-persistent-storage).
+### 4.1.2 Reconfigure your existing connections instance
 
+**This reconfiguration requires a full restart of the instance**
 
-**Attention: The reclaim policy is currently set to Delete. This will delete your storage and data in case you delete the pvc. This is different from what IBM creates with their helm chart. Do not run `helm delete connections-volumes` when you want to keep your data.**
- 
-```
-# Run the Helm Chart to create the PVCs on our azurefile storage
-# The Helm Chart is a modified version from IBM. It supports the same parameters.
-# You can specify more parameters if required, especially when you do not want all storages or different sizes.
-helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
-  --name=connections-volumes \
-  --set storageClassName=azurefile \
-  --set customizer.enabled=false \
-  --set solr.enabled=true \
-  --set zk.enabled=true \
-  --set es.enabled=true \
-  --set mongo.enabled=true
- 
-```
+The process is described by IBM on page [Configuring the NGINX proxy server for Customizer](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_config_customizer_setup_nginx.html).
+
+1. Get new SSL Certificates for your HTTP Server and in case for your Load Balancer where the Service Principal Name also includes the new DNS Name. The old name is only necessary until the new ingress controller is active. In case you do this during the same down time, the old name is not necessary in the SSL certificate.
+2. Update your HTTP Server and in case your load balancer to use the new SSL certificate. 
+3. Update all service names in the LotusConnections-config.xml from the existing DNS name to the new DNS name. 
+4. Place the existing DNS Name in the Dynamic Host configuration so that URLs calculated by the system still have the old DNS name.
+5. Restart your infrastructure
+
+After the restart, your old infrastructure should behave normal. If not, you need to debug the configuration change and make sure the DNS entries point to the right systems.
 
 
+# 4.1 Installing an Ingress Controller
 
-## 4.2 Create Docker Registry pull secret
+The Customizer requires a reverse proxy in front of the whole infrastructure so that some specific HTTP URLs can be redirected to the Customizer for modification. IBM suggests to use a nginx server. As it is a common problem on kubernetes infrastructures to redirect HTTP(s) traffic to different backend services (internal servers and external endpoints) out of the box solutions exists that can be used.
 
-IBM Component Pack uses a kubernetes secret to store the access credentials for the docker registry.
-Use the credentials of the service principal we created earlier in [Create a service principal user to access your Docker Registry](chapter1.html#14-create-a-service-principal-user-to-access-your-docker-registry).
+This chapter uses the nginx-ingress controller from [nginx-ingress]().
+Microsoft is has a documentation on page [Create an HTTPS ingress controller on Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/ingress-tls).
 
-More details can be found in the [IBM Knowledge Center](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs.html).
+There are different possibilities on how to connect to a Kubernetes cluster. Usually this is done via a load balancer. The load balancer can be set up automatically by Kubernetes or manually. The load balancer ip can be either internal or a public ip address. As Microsoft does not charge for internal load balancer and only one public ip is necessary, the helm hart below will configure a load balancer for the ingress controller.
+
+To install the ingress controller run the helm chart:
 
 ```
-# Load our environment settings
+# Number of replica. Should be less or equal to your nodes customizer nodes.
+replica=2
+
+# Run this helm chart to use a public facing load balancer and get a public IP.
+helm install stable/nginx-ingress \
+  --namespace kube-system \ 
+  --set controller.replicaCount=$replica
+
+
+# Run this helm chart to get a private facing load balanser and get a private IP.
+# This is done by annotate the service.
+# !!! Currently untested !!!
+helm install stable/nginx-ingress \
+  --namespace kube-system \
+  --set controller.replicaCount=$replica \
+  --set controller.service.annotations='{"service.beta.kubernetes.io/azure-load-balancer-internal": "true"}'
+
+
+```
+
+# 4.2 Configure the ingress controller
+
+The ingress controller uses a standard ngingx server.
+
+The standard nginx server allows only 1MB of HTTP body to be send to a proxy resource. As the maximum file size in Connections is 512MB or higher when customized, this limit must be adjusted accordingly.
+
+The ingress controller has a config map where all system wide settings are configured. To modify the maximum body size run:
+
+```
+# Adjust the limit to your needs!
+limit=512m
+
+# get configmap real name
+configmap=$(kctl get configmap -o "name" | grep nginx-ingress-controller)
+
+# patch configmap
+kubectl -n connections patch $configmap --patch '{"data": {"proxy-body-size":"512m"}}'
+
+```
+
+# 4.3 Get SSL Certificate
+
+To secure your traffic a ssl certificate is necessary. This certificate must be added to a kubernetes secret.
+
+
+When using the ingress controller together with the [cert-manager](https://github.com/jetstack/cert-manager) , the necessary ssl certificates can be retrieved automatically. This setup is currently not described here as it is documented by Microsoft on the page [Install cert-manager](https://docs.microsoft.com/en-us/azure/aks/ingress-tls#install-cert-manager).
+
+For simplicity we use a self singed certificate for now. Example: [TLS certificate termination](https://github.com/kubernetes/contrib/tree/master/ingress/controllers/nginx/examples/tls)
+
+```
+# Create a self signed certificate
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /tmp/tls.key -out /tmp/tls.crt
+
+# Store the certificate inside Kubenetes
+kubectl -n connections create secret tls tls-secret --key /tmp/tls.key --cert /tmp/tls.crt
+
+```
+
+# 4.4 Configure your existing infrastructure as external service
+
+External services exist to create a pointer to external systems. This creates a CNAME entry inside the Kubernetes DNS. 
+
+Use the new backend DNS name as external name for this resource.
+
+To create the external service for your existing infrastructure run:
+
+```
+# Load settings
 . ~/settings.sh
 
-# Create kubernetes secret myregkey
-kubectl -n connections create secret docker-registry myregkey \
-  --docker-server=${AZRegistryName}.azurecr.io \
-  --docker-username=<Service principal ID> \
-  --docker-password=<Service principal password>
+# Create external service cnx-backend
+kubectl -n connections create service externalname cnx-backend --external-name $ic_internal
 
 ```
 
-## 4.3 Upload Docker images to registry
+# 4.5 Create a ingress resource to forward the traffic
 
-IBM provides a script to upload all necessary images to your registry. Unfortunately it requires that you type in you username and password for the registry. 
-Assuming that your account you are working with Azure Cli, has the rights to upload images to the registry, you can modify the script to ignore the username password and just upload the images using your implicit credentials.
+The basic ingress resource will proxy all traffic from the public IP to the old infrastructure. The resources to forward some specific paths to Customizer will be added later.
 
-The IBM instructions are found on page [Pushing Docker images to the Docker registry](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_push_docker_images.html).
-
-Modify the -st parameter to your needs. When you omit this parameter, all images are uploaded. <br>As we just remove the `docker login` command from the script, the username and password parameters are still mandatory but irrelevant.
-
-When the task is finished and you choose to upload all images, 3.5 GB of data were uploaded to your registry.
+To create the resource run:
 
 ```
-# Load our environment settings
-. ~/settings.sh
-
-# Login with your account to the docker registry
-az acr login --resource-group $AZResourceGroup --name $AZRegistryName
-
-# move into the support directory of the IBM CP installation files
-cd microservices_connections/hybridcloud/support
-
-# Modify the installation script to comment out the docker login command.
-sed -i "s/^docker login/#docker login/" setupImages.sh
-
-# Push the required images to your registry.
-# In case of problems or you need more images, you can rerun this command at any time.
-# Docker will upload only what is not yet in the registry.
-./setupImages.sh -dr ${AZRegistryName}.azurecr.io \
-  -u dummy \
-  -p dummy \
-  -st customizer,elasticsearch,orientme
+#Run script to create the cnx_ingress rule
+bash beas-cnx-cloud/Azure/scripts/cnx_ingress.sh
 
 ```
 
-In case you have pushed all images to the registry or you are shure you do not need more, you can remove the "images" directory and the download IC-ComponentPack-6.0.0.6.zip.zip so save disk space.
+# 4.6 Test your forwarding
 
-## 4.4 Taint nodes for Elastic Search
+To test your forwarding, you can use curl or wget. I do not recommend to use a browser as the forwarding is not fully functional yet and with a full browser it is not that easy to see the details.
 
-When you want to have dedicated nodes for Elastic Search you need to taint and label them.<br>
-When you just have 1 node, skip this step.
+**Test the access to your ingress loadbalancer by IP**
 
-For details instructions from IBM see page [Labeling and tainting worker nodes for Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_label_es_workers.html).
+As your DNS entry is still pointing to the "old" infrastructure, DNS name can not yet tested.
 
-```
-# Get the available nodes
-kubectl get nodes
+Access the Load Balancer DNS name e.g. curl -v -k "https://<lb ip>"
 
-# For each node, you want to taint run:
-node=<node name>
-kubectl drain $node --force --delete-local-data --ignore-daemonsets
-kubectl label nodes $node type=infrastructure --overwrite 
-kubectl taint nodes $node dedicated=infrastructure:NoSchedule \
-  --overwrite
-kubectl uncordon $node
- 
+* When the forward works as expected, the result of the test should be a "302" redirect to the DNS Name of your old connections instance.
+* When the access to the service does not work, you get a connection timeout
+* When the access to the service works but the forward fails, you get a 502 Gateway not reachable error.
 
-```
+** Test the access to your ingress loadbalancer by DNS**
 
-## 4.5 Deploy Component Pack to Cluster
+To access the load balancer via DNS Name, you need to either reconfigure your DNS Server or create a local hosts entry on your computer.
 
-This chapter simply follows the instructions from IBM on page [Installing Component Pack services](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_services_intro.html).
+1. Test `ping <dns name>` to check the correct DNS resolution to your new load balancer.
+2. Test `curl -v -k http://<dns name>` to check the correct response.<br>
+The results of your test should be a redirect to the DNS name of your old infrastructure.<br>
+The error causes are the same as above.
 
-All shown commands use as much default values as possible. Check IBM documentation for more options.
+** Test with a browser **
 
+You can now use a browser to test the access.
 
-### 4.5.1 Bootstrapping the Kubernetes cluster
+# 4.7 Point your DNS to the front door
 
-[Bootstrapping the Kubernetes Cluster](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_bootstrap.html)
+When your can access your old infrastructure through the reverse proxy, you can modify the DNS entry for your connections infrastructure to use the load balancer public IP.
 
+**Before doing so, make sure you have a valid SSL certificate configured in your ingress controller.**
 
-```
-# Load our environment settings
-. ~/settings.sh
-
-helm install \
---name=bootstrap microservices_connections/hybridcloud/helmbuilds/bootstrap-0.1.0-20181008-114142.tgz \
---set \
-image.repository=${AZRegistryName}.azurecr.io/connections,\
-env.set_ic_admin_user=$ic_admin_user,\
-env.set_ic_admin_password=$ic_admin_password,\
-env.set_ic_internal=$ic_internal,\
-env.set_master_ip=$master_ip,\
-env.set_starter_stack_list="$starter_stack_list",\
-env.skip_configure_redis=true
-
-```
-
-
-### 4.5.2 Installing the Component Pack's connections-env
-
-[Installing the Component Pack's connections-env](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_connections-env.html)
-
-```
-# Load our environment settings
-. ~/settings.sh
-
-helm install \
---name=connections-env microservices_connections/hybridcloud/helmbuilds/connections-env-0.1.40-20181011-103145.tgz \
---set \
-onPrem=true,\
-createSecret=false,\
-ic.host=$ic_front_door,\
-ic.internal=$ic_http_server,\
-ic.interserviceOpengraphPort=443,\
-ic.interserviceConnectionsPort=443,\
-ic.interserviceScheme=https
-
-```
-
-
-### 4.5.3 Installing the Component Pack infrastructure
-
-[Installing the Component Pack infrastructure](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_infrastructure.html)
-
-**Only relevant for orientme and customizer**
-
-```
-# Load our environment settings
-. ~/settings.sh
-
-helm install \
---name=infrastructure microservices_connections/hybridcloud/helmbuilds/infrastructure-0.1.0-20181014-210242.tgz \
---set \
-global.onPrem=true,\
-global.image.repository=${AZRegistryName}.azurecr.io/connections,\
-mongodb.createSecret=false,\
-appregistry-service.deploymentType=hybrid_cloud
-
-```
-
-
-### 4.5.4 Installing Orient Me
-
-[Installing Orient Me](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_om.html)
-
-**Only relevant for orientme**
-
-When you do not use ISAM:
-
-```
-# Load our environment settings
-. ~/settings.sh
-
-helm install \
---name=orientme microservices_connections/hybridcloud/helmbuilds/orientme-0.1.0-20181014-210314.tgz \
---set \
-global.onPrem=true,\
-global.image.repository=${AZRegistryName}.azurecr.io/connections,\
-orient-web-client.service.nodePort=30001,\
-itm-services.service.nodePort=31100,\
-mail-service.service.nodePort=32721,\
-community-suggestions.service.nodePort=32200
-
-```
-
-Check if all pods are running: `kubectl get pods -n connections`
-
-
-### 4.5.5 Installing Elasticsearch
-
-[Installing Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_es.html)
-
-**Attention: In case you have only one node or did not taint the nodes for elastic search set `nodeAffinityRequired=false`.**
-
-**Only relevant for elasitcsearch**
-
-```
-# Load our environment settings
-. ~/settings.sh
-
-helm install \
---name=elasticsearch microservices_connections/hybridcloud/helmbuilds/elasticsearch-0.1.0-20180921-115419.tgz \
---set \
-image.repository=${AZRegistryName}.azurecr.io/connections,\
-nodeAffinityRequired=$nodeAffinityRequired
-
-```
-
-Check if all pods are running: `kubectl get pods -n connections -o wide`
-
-
-### 4.5.6 Installing Customizer (mw-proxy)
-
-[Installing Customizer (mw-proxy)](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_customizer.html)
-
-**Only relevant for curstomizer**
-
-```
-# Load our environment settings
-. ~/settings.sh
-
-helm install \
---name=mw-proxy microservices_connections/hybridcloud/helmbuilds/mw-proxy-0.1.0-20181012-071823.tgz \
---set \
-image.repository=${AZRegistryName}.azurecr.io/connections,\
-deploymentType=hybrid_cloud
-
-```
-
-Check if all pods are running: `kubectl get pods -n connections`
-
-
-### 4.5.7 Installing tools for monitoring and logging
-
-#### 4.5.7.1 Setting up Elastic Stack
-
-
-##### 4.5.7.1.1 Installing Elastic Stack
-
-
-##### 4.5.7.1.2 Setting up the index patterns in Kibana
-
-
-##### 4.5.7.1.3 Filtering out logs
-
-
-##### 4.5.7.1.4 Using the Elasticsearch Curator
-
-
-#### 4.5.7.2 Installing the Kubernetes web-based dashboard
-
-Depending on how you set up your Azrue AKS instance, the dashboard is already installed.
-
-When you used my script from [1.5 Create your Azure Kubernetes Environment](chapter1.html#15-create-your-azure-kubernetes-environment) the monitoring is already installed.<br>
-You can see that pods named heapster and kubernetes-dashboard are running when you check the running pods in the kube-system namespace: `kubectl -n kube-system get pods`
-
-As our cluster is rbac enabled, run this command to give the dashboard the required rights:
-
-```
-kubectl create clusterrolebinding kubernetes-dashboard --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
-
-```
-
-Follow the instructions from Microsoft to access your dashboard: <https://docs.microsoft.com/en-us/azure/aks/kubernetes-dashboard>
-
-#### 4.5.7.3 Installing the Sanity dashboard
-
-[Installing the Sanity dashboard](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_sanity.html)
-
-
-```
-# Load our environment settings
-. ~/settings.sh
-
-
-# Install Sanity Helm chart
-helm install \
---name=sanity microservices_connections/hybridcloud/helmbuilds/sanity-0.1.8-20181010-163810.tgz \
---set \
-image.repository=${AZRegistryName}.azurecr.io/connections
-
-# Install Sanity Watcher Helm chart
-helm install \
---name=sanity-watcher microservices_connections/hybridcloud/helmbuilds/sanity-watcher-0.1.0-20180830-052154.tgz \
---set \
-image.repository=${AZRegistryName}.azurecr.io/connections
-
-```
-
-Check if all pods are running: `kubectl get pods -n connections`
-
-To access your sanity dashboard, you can use the kubernetes proxy on your local desktop.
-
-1. Make sure you have configured your local kubectl command correctly. See [2.1 Install and configure kubectl](chapter2.html#21-install-and-configure-kubectl).
-2. Make sure you have run az login
-
-run `kubectl proxy --port=8002` on your local computer to start the local proxy service.
-
-Use your browser to access the sanity dashboard via: <http://127.0.0.1:8002/api/v1/namespaces/connections/services/http:sanity:3000/proxy>
-
-
-## 4.6 Test
-
-### 4.6.1 Check installed helm packages
-
-To check which helm charts you installed run: `helm list`
-
-### 4.6.2 Check running pods
-
-To check which applications are running, run: `kubectl -n connetions get pods`<br>
-All pods should shown as running.
-
-See IBM Documentation for more commands on page [Troubleshooting Component Pack installation or upgrade](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_troubleshoot_intro.html).
-
-
-### 4.6.3 Kubernetes Dashboard
-
-Use the installed Kubernetes Dashboard to inspect your infrastructure. See [4.5.7.2 Installing the Kubernetes web-based dashboard](chapter4.html#4572-installing-the-kubernetes-web-based-dashboard)
-
+After this step, your new infrastructure is productive as all of your users now access your connections instance through the ingress controller.

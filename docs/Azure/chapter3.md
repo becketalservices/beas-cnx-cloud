@@ -1,4 +1,4 @@
-# 3. Install your first application
+# 3 Install your first application
 
 To check that everything runs smoothly, we will install a file browser which can be later used to manage your customizer storage.
 
@@ -11,13 +11,13 @@ To create the namespace run: `kubectl create namespace connections`
  
 ## 3.2 Create the customizer persistent storage
 
-The persistent storage for Customizer must be a ReadOnlyMany storage type. Thats why we created the Azure File Service.
+The persistent storage for Customizer must be a ReadWriteMany storage type. Thats why we created the Azure File Service.
 
 To crate the storage, we will crate:
 
-1. StorageClass `azurefile`
+1. StorageClass *azurefile*
 2. Grant the storage provisioner appropriate rbac rights
-3. Persistent Volume claim `customizerstorage`
+3. Persistent Volume claim *customizerstorage*
 
 **Storage Class**
 
@@ -44,7 +44,7 @@ run `kubectl apply -f beas-cnx-cloud/Azure/kubernetes/azure-pvc-roles.yaml`
 
 **Persistent Volume Claim**
 
-To crate the persistent volume claim for Customizier with the name `customizernfsclaim` run this command:
+To crate the persistent volume claim for Customizer with the name `customizernfsclaim` run this command:
 
 ```
 kubectl apply -f beas-cnx-cloud/Azure/kubernetes/create_pvc_customizer.yaml
@@ -70,10 +70,14 @@ helm install https://github.com/becketalservices/cnx_cp_filebrowser/releases/dow
 ```
 
 To test the browser access, a load balancer service must be created.  
-Delete the service afterwarer testing. The normal IBM Component Pack will be reachable via an ingress controller that gets configured later.
+Delete the service after testing. The normal IBM Component Pack will be reachable via an ingress controller that gets configured later.
 
 ```
-kubectl -n connections expose deployment filebrowser --port=8080 --target-port=80 --name=fb-service --type=LoadBalancer
+kubectl -n connections expose deployment filebrowser \
+  --port=8080 \
+  --target-port=80 \
+  --name=fb-service \
+  --type=LoadBalancer
 
 ```
 

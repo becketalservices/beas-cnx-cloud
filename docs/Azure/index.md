@@ -8,6 +8,7 @@ components. Please use a payed account.
 
 1. [Create Kubernetes infrastructure on Azure](chapter1.html)
 2. [Configure your Bastion Host as administration workstation](chapter2.html)
-3. [Install your first application](chapter3.html)
-4. [Install Component Pack](chapter4.html)
-5. [Configure Ingress](chapter5.html)
+3. [Configure your Network](chapter3.html)
+4. [Install your first application](chapter4.html)
+5. [Install Component Pack](chapter6.html)
+6. [Configure Ingress](chapter6.html)
