@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: sanity 
+  name: sanity-lb
+  namespace: connections
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: sanity
+    port: 31578
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: sanity
+    release: sanity
+  type: LoadBalancer 

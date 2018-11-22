@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: itm-services
+  name: itm-services-lb
+  namespace: connections
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: itm-services 
+    port: 31100
+    protocol: TCP
+    targetPort: 3000 
+  selector:
+    app: itm-services
+    release: orientme
+  type: LoadBalancer 

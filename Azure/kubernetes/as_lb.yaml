@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: appregistry-service
+    hostname: appregistry-service
+  name: appregistry-service-lb
+  namespace: connections
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: http
+    port: 32212 
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: appregistry-service
+  type: LoadBalancer 
