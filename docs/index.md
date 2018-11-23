@@ -1,4 +1,4 @@
-Create a IBM Component Pack installation on managed Kubernetes
+Create an IBM Component Pack installation on managed Kubernetes
 ==============================================================
 
 IBM has updated the IBM Connections Component Pack to work on a native Kubernetes installation without IBM Cloud private (ICp). This gives everyone the chance to deploy the solution on a managed Kubernetes infrastructure.
