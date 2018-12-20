@@ -134,10 +134,7 @@ EOF
 ```
 
 
-## 1.3 Create a Docker Registry
-
-
-## 1.4 Create your AWS Kubernetes Environment (EKS)
+## 1.3 Create your AWS Kubernetes Environment (EKS)
 
 To create your cluster, make sure your settings.sh is filled with the right values.  
 Run this command:
@@ -179,10 +176,107 @@ kubectl get svc
 
 ```
 
-## 1.5 Launch and Configure Amazon EKS Worker Nodes
+## 1.4 Launch and Configure Amazon EKS Worker Nodes
 
 Up to now, only your Kubernetes Master is created. Now we need to create the required worker nodes.
 
 Follow the instructions in the [Launching Amazon EKS Worker Nodes](https://docs.aws.amazon.com/eks/latest/userguide/launch-workers.html).
+
+We need 2 different node groups:
+
+1. Worker Nodes  
+choose a name like "worker-nodes"  
+create at least 2 Nodes m5.xlarge (4 CPU, 16 GB RAM) with 100GB Hard Disk
+2. Infrastructure Nodes  
+choose a name like "infra-nodes"  
+create at least 2 Nodes m5.xlarge (4 CPU, 16 GB RAM) with 100GB Hard Disk
+ 
+
+When the nodes were created successfully, enable worker nodes to join your cluster.
+
+For this download the _aws-auth-cm.yaml_ from AWS and extend it to have both node groups to join your cluster:
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aws-auth
+  namespace: kube-system
+data:
+  mapRoles: |
+    - rolearn: <ARN of instance role (not instance profile) worker nodes>
+      username: system:node:{{EC2PrivateDNSName}}
+      groups:
+        - system:bootstrappers
+        - system:nodes
+    - rolearn: <ARN of instance role (not instance profile) infra nodes>
+      username: system:node:{{EC2PrivateDNSName}}
+      groups:
+        - system:bootstrappers
+        - system:nodes
+
+```
+
+Taint and label the infrastructure worker nodes as described in [Labeling and tainting worker nodes for Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_label_es_workers.html).
+
+
+
+## 1.5 Create a AWS EFS Storage and Storage Class
+
+### 1.5.1 Create the EFS Storage
+
+Create your EFS Storage by following the AWS documentation [Step 2: Create Your Amazon EFS File System](https://docs.aws.amazon.com/efs/latest/ug/gs-step-two-create-efs-resources.html).
+
+Make sure you specify the VPC and all subnets of your EKS Cluster.  
+As security groups add the Security groups from your worker and infra node.
+
+### 1.5.2 Create Kubernetes resources
+
+**Storage Class**
+
+To create the storage class based on your settings:
+
+```
+# Create Storage Class
+kubectl apply -f beas-cnx-cloud/AWS/kubernetes/aws-efs-sc.yml
+
+```
+
+To check that the storage class has been created run `kubectl get storageclass aws-efs`
+
+
+**RBAC rights**
+
+To grant the correct rights create the necessary cluster roles and bindings
+
+run `kubectl apply -f beas-cnx-cloud/AWS/kubernetes/aws-pvc-roles.yaml`
+
+### 1.5.3 Create the efs provisioner
+
+replace the file.system.id with your id and the aws.region by your region.  
+run the command:
+
+```
+# File System ID:
+fsid=fs-xxxxxx
+
+# Region:
+region=us-east-1
+
+# Create Configmap
+kubectl create configmap efs-provisioner \
+--from-literal=file.system.id=$fsid \
+--from-literal=aws.region=$region \
+--from-literal=provisioner.name=example.com/aws-efs 
+
+# Create efs-provisioner-deployment.yml
+sed -e "s/server:.*/server: $fsid.efs.$region.amazonaws.com/" \
+ -e "s/path:.*/path: \//" \
+ beas-cnx-cloud/AWS/kubernetes/efs-provisioner-deployment.yml > efs-provisioner-deployment.yml
+
+# Apply configuration
+kubectl apply -f efs-provisioner-deployment.yml
+
+```
 
 

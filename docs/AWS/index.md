@@ -7,4 +7,6 @@ The infrastructure requires quite a lot of resources. A Free Tier or Trial Accou
 components. Please use a payed account.
 
 1. [Create Kubernetes infrastructure on AWS](chapter1.html)
+2. [Configure your Bastion Host as administration workstation](chapter2.html)
+3. [Configure your Network](chapter3.html)
 
