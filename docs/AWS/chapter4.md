@@ -87,8 +87,9 @@ To secure your traffic a ssl certificate is necessary. This certificate must be 
 
 When using the ingress controller together with the [cert-manager](https://github.com/jetstack/cert-manager) , the necessary ssl certificates can be retrieved automatically. This setup is currently not described here as it is documented by Microsoft on the page [Install cert-manager](https://docs.microsoft.com/en-us/azure/aks/ingress-tls#install-cert-manager).
 
-Setup the certificate manager is simple when your ingress controller has a public IP. I recommend that you check it out.
+Setup the certificate manager is simple when your ingress controller has a public IP. I recommend trying out the configuration.
 
+If you want to use an other CA managed certificate or a self singed certificate create the secret manually.  
 For simplicity we use a self singed certificate in this documentation. Example: [TLS certificate termination](https://github.com/kubernetes/contrib/tree/master/ingress/controllers/nginx/examples/tls)
 
 ```

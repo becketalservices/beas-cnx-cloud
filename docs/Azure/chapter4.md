@@ -46,7 +46,7 @@ replica=2
 
 # Run this helm chart to use a public facing load balancer and get a public IP.
 helm install stable/nginx-ingress \
-  --namespace kube-system \ 
+  --namespace connections \ 
   --set controller.replicaCount=$replica
 
 
@@ -54,7 +54,7 @@ helm install stable/nginx-ingress \
 # This is done by annotate the service.
 # !!! Currently untested !!!
 helm install stable/nginx-ingress \
-  --namespace kube-system \
+  --namespace connections \
   --set controller.replicaCount=$replica \
   --set controller.service.annotations='{"service.beta.kubernetes.io/azure-load-balancer-internal": "true"}'
 
@@ -74,7 +74,7 @@ The ingress controller has a config map where all system wide settings are confi
 limit=512m
 
 # get configmap real name
-configmap=$(kctl get configmap -o "name" | grep nginx-ingress-controller)
+configmap=$(kubectl -n connections get configmap -o "name" -l app=nginx-ingress)
 
 # patch configmap
 kubectl -n connections patch $configmap --patch '{"data": {"proxy-body-size":"512m"}}'
@@ -88,6 +88,9 @@ To secure your traffic a ssl certificate is necessary. This certificate must be 
 
 When using the ingress controller together with the [cert-manager](https://github.com/jetstack/cert-manager) , the necessary ssl certificates can be retrieved automatically. This setup is currently not described here as it is documented by Microsoft on the page [Install cert-manager](https://docs.microsoft.com/en-us/azure/aks/ingress-tls#install-cert-manager).
 
+Setup the certificate manager is simple when your ingress controller has a public IP. I recommend trying out the configuration.
+
+If you want to use an other CA managed certificate or a self singed certificate create the secret manually.  
 For simplicity we use a self singed certificate for now. Example: [TLS certificate termination](https://github.com/kubernetes/contrib/tree/master/ingress/controllers/nginx/examples/tls)
 
 ```
