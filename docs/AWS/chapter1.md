@@ -120,6 +120,9 @@ SUBNETID=<List of Subnet IDs>
 SecGroup=<Security Group>
 IAMRoleName=<IAM Role Name>
 
+storageclass=aws-efs
+ECRRegistry=<your docker registry>
+
 ic_admin_user=admin_user
 ic_admin_password=admin_password
 ic_internal=ic_internal
@@ -219,6 +222,8 @@ data:
 
 Taint and label the infrastructure worker nodes as described in [Labeling and tainting worker nodes for Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_label_es_workers.html).
 
+Make sure all network traffic can flow beteen the nodes.  
+Add the security group of the worker nodes to the security group of the infrastructure nodes and vice versa.
 
 
 ## 1.5 Create a AWS EFS Storage and Storage Class
@@ -243,6 +248,8 @@ kubectl apply -f beas-cnx-cloud/AWS/kubernetes/aws-efs-sc.yml
 ```
 
 To check that the storage class has been created run `kubectl get storageclass aws-efs`
+
+In case you named your storage class differently, update the settings.sh file. 
 
 
 **RBAC rights**
@@ -277,6 +284,6 @@ sed -e "s/server:.*/server: $fsid.efs.$region.amazonaws.com/" \
 # Apply configuration
 kubectl apply -f efs-provisioner-deployment.yml
 
-```
+```	
 
 

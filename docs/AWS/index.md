@@ -10,4 +10,4 @@ components. Please use a payed account.
 2. [Configure your Bastion Host as administration workstation](chapter2.html)
 3. [Install your first application](chapter3.html)
 4. [Configure your Network](chapter4.html)
-
+5. [Install Component Pack](chapter5.html)
