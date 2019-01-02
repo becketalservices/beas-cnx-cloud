@@ -11,3 +11,4 @@ components. Please use a payed account.
 3. [Install your first application](chapter3.html)
 4. [Configure your Network](chapter4.html)
 5. [Install Component Pack](chapter5.html)
+6. [Configure Ingress](chapter6.html)

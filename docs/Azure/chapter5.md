@@ -191,7 +191,7 @@ helm install \
 onPrem=true,\
 createSecret=false,\
 ic.host=$ic_front_door,\
-ic.internal=$ic_http_server,\
+ic.internal=$ic_internal,\
 ic.interserviceOpengraphPort=443,\
 ic.interserviceConnectionsPort=443,\
 ic.interserviceScheme=https
