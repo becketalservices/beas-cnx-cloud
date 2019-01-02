@@ -9,9 +9,8 @@ As many companies are now using cloud services, using Kubernetes services out of
 
 This documentation provides information and installation guidelines to get IBM Connections Component Pack running on a managed Kubernetes service on one of the main cloud providers.
 
-[Installation instructions for Microsoft Azure](Azure/index.md)
-
-
+* [Installation instructions for Microsoft Azure](Azure/index.md)
+* [Installation instructions for Amazon Web Services](AWS/index.md)
 
 After following the guide an infrastructure similar to this picture is running:
 
