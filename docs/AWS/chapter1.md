@@ -232,8 +232,8 @@ Add the security group of the worker nodes to the security group of the infrastr
 
 Create your EFS Storage by following the AWS documentation [Step 2: Create Your Amazon EFS File System](https://docs.aws.amazon.com/efs/latest/ug/gs-step-two-create-efs-resources.html).
 
-Make sure you specify the VPC and all subnets of your EKS Cluster.  
-As security groups add the Security groups from your worker and infra node.
+* **Make sure you specify the VPC and all subnets of your EKS Cluster.**  
+* **Add the Security groups from your worker and infra node to the Security Group of your EFS File System.**
 
 ### 1.5.2 Create Kubernetes resources
 

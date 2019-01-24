@@ -47,6 +47,7 @@ replica=2
 # Run this helm chart to use a public facing load balancer and get a public IP.
 helm install stable/nginx-ingress \
   --namespace connections \
+  --name connections \
   --set controller.replicaCount=$replica
 
 
@@ -58,8 +59,20 @@ helm install stable/nginx-ingress \
   --set controller.replicaCount=$replica \
   --set controller.service.annotations='{"service.beta.kubernetes.io/aws-load-balancer-internall": "0.0.0.0/0"}'
 
+# Run this helm chart to start the ingress controller but do not crate the load balancer. (adjust the used ports if necessary)
+helm install stable/nginx-ingress \
+  --namespace connections \
+  --name connections \
+  --set controller.replicaCount=$replica \
+  --set controller.service.type=NodePort \
+  --set controller.service.nodePorts.http=32080 \
+  --set controller.service.nodePorts.https=32443
+
+
 
 ```
+
+**When using an internal elb, make sure the security groups are configured correctly to allow traffic forwarding**
 
 # 4.2 Configure the ingress controller
 

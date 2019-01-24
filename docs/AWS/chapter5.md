@@ -74,11 +74,13 @@ Add the URL to our docker registry to the settings.sh file. The URL is necessary
 When the task is finished and you choose to upload all images, 3.5 GB of data were uploaded to your registry.
 
 ```
+# move into the support directory of the IBM CP installation files
+cd microservices_connections/hybridcloud/support
+
 # Create your ECR Repositories
 for i in $(grep -Po 'docker push \${DOCKER_REGISTRY}\/\K[^:]+' setupImages.sh); \
  do aws ecr create-repository --repository-name $i; \
 done 
-
 
 # Login with your account to the docker registry
 $(aws ecr get-login --no-include-email)
@@ -86,9 +88,6 @@ $(aws ecr get-login --no-include-email)
 # Load our environment settings
 # add ECRRegistry=aws_account_id.dkr.ecr.region.amazonaws.com
 . ~/settings.sh
-
-# move into the support directory of the IBM CP installation files
-cd microservices_connections/hybridcloud/support
 
 # Modify the installation script to comment out the docker login command.
 sed -i "s/^docker login/#docker login/" setupImages.sh
@@ -267,40 +266,28 @@ Check if all pods are running: `kubectl get pods -n connections`
 
 #### 5.3.7.1 Setting up Elastic Stack
 
+[Setting up Elastic Stack](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_dashboards_elasticstack.html)
 
-##### 5.3.7.1.1 Installing Elastic Stack
-
-
-##### 5.3.7.1.2 Setting up the index patterns in Kibana
-
-
-##### 5.3.7.1.3 Filtering out logs
+```
+# Load our environment settings
+. ~/settings.sh
 
 
-##### 5.3.7.1.4 Using the Elasticsearch Curator
+helm install \
+--name=elasticstack microservices_connections/hybridcloud/helmbuilds/elasticstack-0.1.0-20181014-210326.tgz \
+--set \
+global.onPrem=true,\
+global.image.repository=${ECRRegistry}/connections,\
+nodeAffinityRequired=$nodeAffinityRequired
+
+```
+
 
 
 #### 5.3.7.2 Installing the Kubernetes web-based dashboard
 
 Follow the tutorial [Tutorial: Deploy the Kubernetes Web UI (Dashboard)](https://docs.aws.amazon.com/eks/latest/userguide/dashboard-tutorial.html) to install the dashboard.
 
-
-
-Depending on how you set up your Azrue AKS instance, the dashboard is already installed.
-
-When you used my script from [1.5 Create your Azure Kubernetes Environment](chapter1.html#15-create-your-azure-kubernetes-environment) the monitoring is already installed.<br>
-You can see that pods named heapster and kubernetes-dashboard are running when you check the running pods in the kube-system namespace: `kubectl -n kube-system get pods`
-
-As our cluster is rbac enabled, run this command to give the dashboard the required rights:
-
-```
-kubectl create clusterrolebinding kubernetes-dashboard \
-  --clusterrole=cluster-admin \
-  --serviceaccount=kube-system:kubernetes-dashboard
-
-```
-
-Follow the instructions from Microsoft to access your dashboard: <https://docs.microsoft.com/en-us/azure/aks/kubernetes-dashboard>
 
 #### 5.3.7.3 Installing the Sanity dashboard
 
@@ -333,9 +320,9 @@ To access your sanity dashboard, you can use the kubernetes proxy on your local 
 1. Make sure you have configured your local kubectl command correctly. See [2.1 Install and configure kubectl](chapter2.html#21-install-and-configure-kubectl).
 2. Make sure you have run `aws eks update-kubeconfig --name cluster_name`
 
-run `kubectl proxy --port=8002` on your local computer to start the local proxy service.
+run `kubectl proxy` on your local computer to start the local proxy service.
 
-Use your browser to access the sanity dashboard via: <http://127.0.0.1:8002/api/v1/namespaces/connections/services/http:sanity:3000/proxy>
+Use your browser to access the sanity dashboard via: <http://127.0.0.1:8001/api/v1/namespaces/connections/services/http:sanity:3000/proxy>
 
 
 ## 5.4 Test

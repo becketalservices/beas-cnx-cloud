@@ -24,7 +24,10 @@ Choose your cluster nodes as destinations.
 
 ### 6.6.3 Assign Security Groups
 
-Make sure all devices see each other. Put the LB security group in the access group of your nodes.  
+Make sure all devices see each other. 
+
+* **Add the Security groups from your worker and infra nodes to the Security Group of your elb.**
+* **Add the Security groups from your elb to the Security Group of your worker and infra node.**  
 
 
 When everything is set up correctly, the LB shows your nodes as "InService".
