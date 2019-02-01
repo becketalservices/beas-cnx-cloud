@@ -57,7 +57,7 @@ Check the output of the script.
 [Docker Basics for Amazon ECR](https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-basics.html)
 
 ```
-sudo yum update –y
+sudo yum update -y
 sudo amazon-linux-extras install -y docker
 sudo yum -y install docker
 sudo systemctl enable docker
