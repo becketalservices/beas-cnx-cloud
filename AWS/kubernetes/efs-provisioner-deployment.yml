@@ -38,4 +38,4 @@ spec:
         - name: pv-volume
           nfs:
             server: fs-xxxxxx.efs.us-east-1.amazonaws.com
-            path: /pvs
+            path: /

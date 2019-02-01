@@ -8,18 +8,45 @@ This chapter follows the documentation from AWS [Getting Started with Amazon EKS
 
 ### 1.1.1 Create your Amazon EKS service role in the IAM console
 
-Create a IAM Role for your cluster.  
-Choose EKS as your service.  
-Choose a unique role name.  
+Open the AWS Console and choose service IAM.
 
-### 1.1.2 Create your Amazon EKS Cluster VPC
+1. Create a new IAM Role for your cluster. (e.g. EKSMaster)  
+2. Choose EKS as service.
+3. Make sure this policies are automatically selected:
+   AmazonEKSClusterPolicy
+   AmazonEKSServicePolicy
+4. Choose a unique role name.
+
+In case you want to make sure your Bastion Host can fully manage your EKS Cluster on your behalf, create a Policy and a new EC2 Role.
+
+1. Create a new IAM Policy. (e.g. EKSFullAccess)
+    1. choose EKS as service
+    2. choose All EKS actions (eks:*) as action
+    3. choose All resources in Resources
+    4. Add additional permissions
+	5. choose IAM as service
+    6. choose Write - PassRole as action
+    7. choose All resources in Resources
+    8. Review your policy, and give it a speeking name.
+2. Create a new IAM Role for your bastion host. (e.g. EKSManager)
+    1. Choose EC2 as service.
+    2. Select the following policies:
+        - AmazonEC2ContainerRegistryFullAccess  
+        - AmazonElasticFileSystemFullAccess  
+        - AmazonEKSWorkerNodePolicy  
+        - AmazonEKS_CNI_Policy  
+        - EKSFullAccess (the policy you created in 1.)  
+    3. Tag and review your new role  
+    4. give it a speaking name.  
+
+### 1.1.2 Create your Amazon EKS Cluster VPC, Subnets and Security Group.
 
 Follow the instructions in the [getting started guide](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html) from AWS to create your VPC for the EKS cluster.
 
 Make sure you record the Security Groups value and the VPCId and the SubnetIds of the created resources. 
 
 
-### 1.1.2 Create a Bastion Host in your VPC to administer your cluster
+### 1.1.3 Create a Bastion Host in your VPC to administer your cluster
 
 The bastion host will be a small Linux host to upload the docker images to the registry and administer the cluster.
 It is recommended that the host is in the same VPC as your kubernetes cluster. This will simplify the access to the cluster resources and the administration.
@@ -30,11 +57,12 @@ The host can use a very small server e.g. t2.medium as no compute power is neces
 
 Open the AWS Console and create the Bastion Host.
 Place the host into the the new VPC as you will use it for your Kubernetes Cluster.
+Attach the EKSManager Role you created in 1.1.1 to the instance.
 
-* Use CentOS as OS for the Bastion Host. Other Linux systems should also be possible as long as you can install Docker CE onto them.
+* Use CentOS or AWS Linux as OS for the Bastion Host. Other Linux systems should also be possible as long as you can install Docker CE onto them.
 All provided scripts are created on CentOS or RHEL Server. They are not tested with other Linux distributions. 
 * Open port 22 (SSH) to access your Bastion Host from everywhere.
-* Make sure a public IP is assinged. Either assign an Elastic IP afterwards or make sure "Auto-assign Public IP" is set to enable.
+* Make sure a public IP is assigned. Either assign an Elastic IP afterwards or make sure "Auto-assign Public IP" is set to enable.
 * Make sure you assign 30GB of Hard Disk space to your new instance. You need this disk space to extract the Component Pack.
 
 
@@ -46,9 +74,8 @@ For login use the username for your used image (use centos when you choose the o
 ### 1.2.1 Install git to clone this repository to have the scripts available.
 
 ```
-sudo -i
-yum -y update
-yum -y install git
+sudo yum -y update
+sudo yum -y install git
 git clone https://github.com/becketalservices/beas-cnx-cloud.git
 
 ```
@@ -154,6 +181,8 @@ aws eks create-cluster --name $EKSName --role-arn $IAMRoleArn --resources-vpc-co
 
 ```
 
+Record the arn of the created EKS Cluster. You need it later.
+
 Check the output of the command. 
 
 To check the current status of your cluster and wait until it is created:
@@ -171,7 +200,7 @@ aws eks update-kubeconfig --name $EKSName
 
 ```
 
-Check that you can succsessfully communicate with your new cluster:  
+Check that you can successfully communicate with your new cluster:  
 Run command:
 
 ```
@@ -233,7 +262,8 @@ Add the security group of the worker nodes to the security group of the infrastr
 Create your EFS Storage by following the AWS documentation [Step 2: Create Your Amazon EFS File System](https://docs.aws.amazon.com/efs/latest/ug/gs-step-two-create-efs-resources.html).
 
 * **Make sure you specify the VPC and all subnets of your EKS Cluster.**  
-* **Add the Security groups from your worker and infra node to the Security Group of your EFS File System.**
+* **Add the Security groups from your worker and infra node to the Security Group of your EFS File System.**  
+  **This security group was created during step 1.4 Launch and Configure Amazon EKS Worker Nodes**
 
 ### 1.5.2 Create Kubernetes resources
 
