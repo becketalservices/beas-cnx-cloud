@@ -11,22 +11,24 @@ Just extract them: `unzip IC-ComponentPack-6.0.0.6.zip`
 
 IBM provides the relevant documentation on page [Persistent volumes](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_persist_vols.html).
 
-The usage of my efs-aws storage class didn't work when using the helm option. Therefore the persitent volumes need to be created first.
+The usage of my efs-aws storage class didn't work when using the helm option. Therefore the persistent volumes need to be created first.
 
-IBM already created some helper files to create the persistent volumes. As we use AWS EFS and not NFS we need a modified version.  
+IBM already created some helper files to create the persistent volumes. As we use AWS EFS and EBS and not native NFS we need a modified version.  
 Please check the IBM documentation for more details on the available parameters.  
 The script below will create all storages except customizer with its default sizes on our [Create a AWS EFS Storage and Storage Class](chapter1.html#15-create-a-aws-efs-sorage-and-storage-class).
 
 The customizer file store was created earlier: [3.2 Create the customizer persistent storage](chapter3.html#32-create-the-customizer-persistent-storage).
 
-In your test environment you could use the AKS default store as persistent storage. This will create additional virtual hard disks that get attached to your worker nodes as required. This attachment process takes up to 1 minute and when a node becomes unresponsive, the disks must be detached manually before they can get attached to a working node. As alternative you can use AWS EFS as persistent storage. This is much more loosely coupled to your infrastructure but much slower.  
-The es-pvc-backup persistent volume must be placed on a NFS file share as the local disks do not support "ReadWriteMany" access mode. The helm chart from below plces the pv on the same volume as any other. In case you selected a storage class that does not support "ReadWritMany", you need to delete this pvc and create it manually again on the efs storage.
+**Attention: When you plan to use the monitoring stack (ELK) which comes with the component pack, do not place the ElasitcSearch data volumes on EFS. EFS has a limit of 256 locks per application which will be exceeded every night causing ElasticSearch to hang.**
+
+In your test environment you could use the AKS default store as persistent storage. This will create additional virtual hard disks that get attached to your worker nodes as required. This attachment process takes up to 1 minute and when a node becomes unresponsive, the disks must be detached manually before they can get attached to a working node. As alternative you can use AWS EFS as persistent storage. This is much more loosely coupled to your infrastructure but probably slower.  
+The es-pvc-backup persistent volume must be placed on a NFS file share as the local disks do not support "ReadWriteMany" access mode. The helm chart from below places the persistent volume on the same volume as any other. In case you selected a storage class that does not support "ReadWritMany", you need to delete this persistent volume and create it manually again on the efs storage.
 
 **Attention: The reclaim policy is currently set to Delete. This will delete your storage and data in case you delete the pvc. This is different from what IBM creates with their helm chart. Do not run `helm delete connections-volumes` when you want to keep your data.**
  
 ```
-# Run the Helm Chart to create the PVCs on our default storage
-# Use storageClassName=aws-efs to store your persistent data on AWS EFS.
+# Run the Helm Chart to create the PVCs for ElasticSearch on our default storage.
+# We use storageClassName=aws-efs to store your persistent data on AWS EFS only for Solr, Zookeeper and MongoDB.
 # The Helm Chart is a modified version from IBM. It supports the same parameters.
 # You can specify more parameters if required, especially when you do not want
 # all storages or different sizes.
@@ -34,27 +36,54 @@ The es-pvc-backup persistent volume must be placed on a NFS file share as the lo
 # Load our environment settings
 . ~/settings.sh
 
+# Create ElasticSearch Volumes on the default storage (gp2)
+helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
+  --name=connections-volumes \
+  --set customizer.enabled=false \
+  --set solr.enabled=false \
+  --set zk.enabled=false \
+  --set es.enabled=true \
+  --set mongo.enabled=false
+
+# Create Solr, Zookeeper and MongoDB Volumes on the custom storage (aws-efs) 
 helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
   --name=connections-volumes \
   --set storageClassName=$storageclass \
   --set customizer.enabled=false \
   --set solr.enabled=true \
   --set zk.enabled=true \
-  --set es.enabled=true \
+  --set es.enabled=false \
   --set mongo.enabled=true
  
 ```
 
-Create the es-pvc-backup pvc manually in case you selected a storage class that does not support "ReadWriteMany" access:
+As the ElasticSearch was installed on the default storage class which does not support "ReadWireMany" we need to reate the es-pvc-backup pvc manually:
 
 ```
 # Delete existing PVC
-kubectl delete pvc es-pvc-backup
+kubectl -n connections delete pvc es-pvc-backup
 
 # Create new PVC
-tbd...
+cat << EOF > create_es_backup.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: es-pvc-backup2
+  namespace: connections
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: $storageclass
+EOF
+
+kubectl create -f create_es_backup.yaml
 
 ```
+
+In case you want to move your ElasticSearch data from EFS to EBS, you can use the process [Migrate ES Data from EFS to EBS](migrate_es_data.html).
 
 ## 5.2 Upload Docker images to registry
 
