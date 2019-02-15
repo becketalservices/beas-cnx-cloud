@@ -28,7 +28,8 @@ kubectl -n connections scale deployment es-client --replicas=0
 kubectl -n connections scale statefulset es-data --replicas=0  
 kubectl -n connections scale deployment es-master --replicas=0  
 
-# Check the result with command. When no pods are running anymore everything is stopped.
+# Check the result with command.
+# When no pods are running anymore everything is stopped.
 kubectl -n connections get pods |grep ^es
 
 ```
@@ -48,12 +49,12 @@ watch -n 10 "kubectl -n connections get pods |grep datamigrate"
 After completion, check the rsync log and on success delete the pods
 
 ```
-#to show the logs
+# Show the logs
 kubectl -n connections logs datamigrate0
 kubectl -n connections logs datamigrate1
 kubectl -n connections logs datamigrate2
 
-#delete the migration pods
+# Delete the migration pods
 kubectl -n connections delete pods datamigrate0 datamigrate1 datamigrate2
 
 ```
