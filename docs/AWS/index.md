@@ -6,8 +6,8 @@ This instructions are like a cook book. You can follow them and you will get the
 The infrastructure requires quite a lot of resources. A Free Tier or Trial Account is not sufficient to install the whole Component Pack
 components. Please use a payed account.
 
-1. [Create Kubernetes infrastructure on AWS](chapter1.html)
-2. [Configure your Bastion Host as administration workstation](chapter2.html)
+1. [Configure your Bastion Host as administration workstation](chapter1.html)
+2. [Create Kubernetes infrastructure on AWS](chapter2.html)
 3. [Install your first application](chapter3.html)
 4. [Configure your Network](chapter4.html)
 5. [Install Component Pack](chapter5.html)
