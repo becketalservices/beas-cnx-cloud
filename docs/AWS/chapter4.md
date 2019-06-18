@@ -86,11 +86,11 @@ The ingress controller has a config map where all system wide settings are confi
 # Adjust the limit to your needs!
 limit=512m
 
-# get configmap real name
-configmap=$(kubectl -n connections get configmap -o "name" -l app=nginx-ingress)
+# create configmap
+kubectl -n connections create configmap connections-nginx-ingress-controller
 
 # patch configmap
-kubectl -n connections patch $configmap --patch "{\"data\": {\"proxy-body-size\":\"$limit\"}}"
+kubectl -n connections patch configmap connections-nginx-ingress-controller --patch "{\"data\": {\"proxy-body-size\":\"$limit\"}}"
 
 ```
 
@@ -98,10 +98,54 @@ kubectl -n connections patch $configmap --patch "{\"data\": {\"proxy-body-size\"
 
 To secure your traffic a ssl certificate is necessary. This certificate must be added to a kubernetes secret.
 
-When using the ingress controller together with the [cert-manager](https://github.com/jetstack/cert-manager) , the necessary ssl certificates can be retrieved automatically. This setup is currently not described here as it is documented by Microsoft on the page [Install cert-manager](https://docs.microsoft.com/en-us/azure/aks/ingress-tls#install-cert-manager).
+## 4.3.1 Automatic SSL Certificate retrieval and renewal
+When using the ingress controller together with the [cert-manager](https://github.com/jetstack/cert-manager) , the necessary ssl certificates can be retrieved automatically. This setup is currently described here as it is documented by Microsoft on the page [Install cert-manager](https://docs.microsoft.com/en-us/azure/aks/ingress-tls#install-cert-manager).
 
-Setup the certificate manager is simple when your ingress controller has a public IP. I recommend trying out the configuration.
+** The SSL Certificate retrieval only works, when you are using a pulbic Load Balancer (The ingress controller is accessible via http (port 80) from the public internet and your productive DNS entry is already pointing to your load balancer. (see Topic 4.7) **
 
+Setup the certificate manager is simple when your ingress controller has a public IP.  
+I recommend trying out the configuration which is copied from Microsoft:
+
+```
+# Install the CustomResourceDefinition resources separately
+kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.8/deploy/manifests/00-crds.yaml
+
+# Create the namespace for cert-manager
+kubectl create namespace cert-manager
+
+# Label the cert-manager namespace to disable resource validation
+kubectl label namespace cert-manager certmanager.k8s.io/disable-validation=true
+
+# Add the Jetstack Helm repository
+helm repo add jetstack https://charts.jetstack.io
+
+# Update your local Helm chart repository cache
+helm repo update
+
+# Install the cert-manager Helm chart
+helm install \
+  --name cert-manager \
+  --namespace cert-manager \
+  --version v0.8.0 \
+  jetstack/cert-manager
+```
+
+to create the CA cluster issuer configuration update your settings.sh:  
+Required parameters:
+
+```
+# Let's Encrypt CA Issuer configuration
+acme_email=<valid email from your organization>
+use_lestencrypt_prod=[true, false]
+```
+
+and run:
+
+```
+bash beas-cnx-cloud/Azure/scripts/ca_cluster_issuer.sh
+```
+
+## 4.3.2 Manual SSL Certificate creation
 If you want to use an other CA managed certificate or a self singed certificate create the secret manually.  
 For simplicity we use a self singed certificate in this documentation. Example: [TLS certificate termination](https://github.com/kubernetes/contrib/tree/master/ingress/controllers/nginx/examples/tls)
 
@@ -149,7 +193,7 @@ To test your forwarding, you can use curl or wget. I do not recommend to use a b
 
 **Test the access to your ingress loadbalancer by IP**
 
-As your DNS entry is still pointing to the "old" infrastructure, DNS name can not yet tested.
+Your DNS entry may still pointing to the "old" infrastructure. In this case the DNS name can not yet tested.
 
 Access the Load Balancer DNS name e.g. curl -v -k "https://<lb ip>"
 

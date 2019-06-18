@@ -26,8 +26,9 @@ In case you want to make sure your Bastion Host can fully manage your EKS Cluste
     4. Add additional permissions
 	5. choose IAM as service
     6. choose Write - PassRole as action
-    7. choose All resources in Resources
-    8. Review your policy, and give it a speeking name.
+    7. choose Read - GetRole as action
+    8. choose All resources in Resources
+    9. Review your policy, and give it a speaking name.
 2. Create a new IAM Role for your bastion host. (e.g. EKSManager)
     1. Choose EC2 as service.
     2. Select the following policies:
@@ -142,9 +143,9 @@ As some variables like your VPCId is required more often, create a file with thi
 # Write our environment settings
 cat > ~/settings.sh <<EOF
 EKSName=<cluster name>
-VPCId=<VPC Id>
-SUBNETID=<List of Subnet IDs>
-SecGroup=<Security Group>
+VPCId=<VPC Id e.g. vpc-2345abcd>
+SUBNETID=<List of Subnet IDs e.g.: subnet-a9189fe2,subnet-50432629>
+SecGroup=<Security Group e.g.: sg-f5c54184>
 IAMRoleName=<IAM Role Name>
 
 storageclass=aws-efs
@@ -237,17 +238,19 @@ metadata:
 data:
   mapRoles: |
     - rolearn: <ARN of instance role (not instance profile) worker nodes>
-      username: system:node:{{EC2PrivateDNSName}}
+      username: system:node:\{\{EC2PrivateDNSName\}\}
       groups:
         - system:bootstrappers
         - system:nodes
     - rolearn: <ARN of instance role (not instance profile) infra nodes>
-      username: system:node:{{EC2PrivateDNSName}}
+      username: system:node:\{\{EC2PrivateDNSName\}\}
       groups:
         - system:bootstrappers
         - system:nodes
 
 ```
+
+run `kubectl create -f aws-auth-cm.yaml`
 
 Taint and label the infrastructure worker nodes as described in [Labeling and tainting worker nodes for Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_label_es_workers.html).
 

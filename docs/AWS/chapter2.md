@@ -43,7 +43,7 @@ Docker is only necessary to deploy the Docker images into the registry or to bui
 
 The instructions about the docker installation are taken from the [IBM Documentation](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereq_kubernetes_nonha.html).
 
-For the installation run the script:
+For the installation run the script **as root**:
 
 ```
 bash beas-cnx-cloud/Azure/scripts/install_docker.sh
