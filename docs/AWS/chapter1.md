@@ -90,7 +90,7 @@ sudo yum -y install vim nano unzip bind-utils
 
 ```
 
-### 1.3.2 Install AWS CLI and eksctl
+### 1.3.2 Install AWS CLI
 
 Login to your new Bastion host using ssh and install the required tools:
 
