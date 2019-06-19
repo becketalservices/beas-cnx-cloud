@@ -4,7 +4,14 @@ We need the installation files from IBM to continue.
 
 Download the files to your Bastion host and extract them. In case you have your files on a Azure file share or AWS S3, you can use my [s3scripts](https://github.com/MSSputnik/s3scripts) to access your files.
 
-Just extract them: `unzip IC-ComponentPack-6.0.0.6.zip`
+To fully extract the component pack archive: `unzip IC-ComponentPack-6.0.0.6.zip`
+
+In case your Container Registry already contains the docker images, you can just extract the scripts and heml charts:
+
+```
+unzip IC-ComponentPack-6.0.0.6.zip -x microservices_connections/hybridcloud/images/*
+
+```
 
 For the update to 6.0.0.7 see [Update Component Pack](chapter7.html)
 
@@ -20,7 +27,7 @@ The script below will create all storages except customizer with its default siz
 
 The customizer file store was created earlier: [3.2 Create the customizer persistent storage](chapter3.html#32-create-the-customizer-persistent-storage).
 
-**Attention: When you plan to use the monitoring stack (ELK) which comes with the component pack, do not place the ElasitcSearch data volumes on EFS. EFS has a limit of 256 locks per application which will be exceeded every night causing ElasticSearch to hang.**
+**Attention: When you plan to use the monitoring stack (ELK) which comes with the component pack, do not place the ElasitcSearch data volumes on EFS. EFS has a limit of 256 open files per process which will be exceeded every night causing ElasticSearch to hang.**
 
 In your test environment you could use the AKS default store as persistent storage. This will create additional virtual hard disks that get attached to your worker nodes as required. This attachment process takes up to 1 minute and when a node becomes unresponsive, the disks must be detached manually before they can get attached to a working node. As alternative you can use AWS EFS as persistent storage. This is much more loosely coupled to your infrastructure but probably slower.  
 The es-pvc-backup persistent volume must be placed on a NFS file share as the local disks do not support "ReadWriteMany" access mode. The helm chart from below places the persistent volume on the same volume as any other. In case you selected a storage class that does not support "ReadWritMany", you need to delete this persistent volume and create it manually again on the efs storage.
@@ -58,7 +65,7 @@ helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
  
 ```
 
-As the ElasticSearch was installed on the default storage class which does not support "ReadWireMany" we need to reate the es-pvc-backup pvc manually:
+As the ElasticSearch was installed on the default storage class which does not support "ReadWireMany" we need to create the es-pvc-backup pvc manually:
 
 ```
 # Delete existing PVC
@@ -299,6 +306,8 @@ Check if all pods are running: `kubectl get pods -n connections`
 
 ### 5.3.7 Installing tools for monitoring and logging
 
+** Do not install this when you placed the elastic search on the EFS storage **
+
 #### 5.3.7.1 Setting up Elastic Stack
 
 [Setting up Elastic Stack](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_dashboards_elasticstack.html)
@@ -368,7 +377,7 @@ To check which helm charts you installed run: `helm list`
 
 ### 5.4.2 Check running pods
 
-To check which applications are running, run: `kubectl -n connetions get pods`<br>
+To check which applications are running, run: `kubectl -n connetions get pods`  
 All pods should shown as running.
 
 See IBM Documentation for more commands on page [Troubleshooting Component Pack installation or upgrade](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_troubleshoot_intro.html).

@@ -118,6 +118,7 @@ To check if the service is available and answers from your connections instance.
 telnet <lb hostname> 30379
 > auth test
 < -ERR invalid password
+quit
 
 ```
 

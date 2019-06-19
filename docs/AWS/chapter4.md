@@ -69,7 +69,6 @@ helm install stable/nginx-ingress \
   --set controller.service.nodePorts.https=32443
 
 
-
 ```
 
 **When using an internal elb, make sure the security groups are configured correctly to allow traffic forwarding**
@@ -93,6 +92,28 @@ kubectl -n connections create configmap connections-nginx-ingress-controller
 kubectl -n connections patch configmap connections-nginx-ingress-controller --patch "{\"data\": {\"proxy-body-size\":\"$limit\"}}"
 
 ```
+
+# 4.3 Make sure your DNS resolution is right
+
+## 4.3.1 DNS entry for external traffic
+
+This is traffic that comes from outside of your network. This users use the external facing load balancer that was created automatically in 4.1 Installing an Ingress Controller.  
+Make sure your public FQDN for your instance is pointing to the load balancer name as CNAME record in your public facing DNS.
+
+## 4.3.1 DNS entry for internal traffic
+
+This traffic that comes from inside of your network. This are your backend servers, the component pack servers itself or internal users.   
+The Load Balancer for this traffic was probably created when you choose the private facing ingress controller.  
+
+In case you created a public facing ingress controller, you need to create the load balancer manually by issuing the command:  
+
+```
+kubectl apply -f beas-cnx-cloud/AWS/kubernetes/aws-intenal-lb.yaml
+
+```
+
+Make sure your public FQDN for your instance is pointing to the internal load balancer name as CNAME record in your private facing DNS.
+
 
 # 4.3 Get SSL Certificate
 
@@ -128,6 +149,7 @@ helm install \
   --namespace cert-manager \
   --version v0.8.0 \
   jetstack/cert-manager
+  
 ```
 
 to create the CA cluster issuer configuration update your settings.sh:  
@@ -137,12 +159,14 @@ Required parameters:
 # Let's Encrypt CA Issuer configuration
 acme_email=<valid email from your organization>
 use_lestencrypt_prod=[true, false]
+
 ```
 
 and run:
 
 ```
 bash beas-cnx-cloud/Azure/scripts/ca_cluster_issuer.sh
+
 ```
 
 ## 4.3.2 Manual SSL Certificate creation
@@ -164,6 +188,21 @@ External services exist to create a pointer to external systems. This creates a 
 
 Use the new backend DNS name as external name for this resource.
 
+Update your component pack configuration in your settings.sh:  
+
+```
+# Component Pack
+ic_admin_user=admin_user
+ic_admin_password=admin_password
+ic_internal="IC Classic FQDN"
+ic_front_door="IC FQDN for users"
+master_ip=
+# "elasticsearch customizer orientme"
+starter_stack_list="elasticsearch customizer orientme"
+# for test environments with just one node or no taint nodes, set to false.
+nodeAffinityRequired="[true/false]"
+
+```
 To create the external service for your existing infrastructure run:
 
 ```

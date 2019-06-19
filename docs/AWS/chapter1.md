@@ -1,40 +1,184 @@
-# 2 Configure your Bastion Host as administration workstation
+# 1 Create your AWS environment
 
-## 2.1 Install helm
+## 1.1 VPC and Security Groups
+
+Make sure you have a VPC with 2 or 3 subnets in a EKS Supported region.
+The subnets should be in one in each availability zone and have at least 64 free IP Addresses.
+
+## 1.2 IAM Roles and Policies
+
+Create an IAM Policy to allow your Bastion Host access to manage the required resources on your behalf.  
+It is possible to restrict the Policy further but for the test, this will do:
+
+Create a new IAM Policy and name it "EKSFullAccess"
+
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetRole",
+                "iam:PassRole",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:GetRolePolicy",
+                "iam:PutRolePolicy",
+                "iam:DeleteRolePolicy",
+                "iam:AttachRolePolicy",
+                "iam:DetachRolePolicy",
+                "iam:GetInstanceProfile",
+                "iam:CreateInstanceProfile",
+                "iam:DeleteInstanceProfile",
+                "iam:AddRoleToInstanceProfile",
+                "iam:RemoveRoleFromInstanceProfile",
+                "cloudformation:*",
+                "eks:*"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+Create a new IAM Role and name it "EKSManager".
+
+Assign this policies to your new IAM Role:
+* AmazonEC2FullAccess
+* AmazonEKSWorkerNodePolicy
+* AmazonEC2ContainerRegistryFullAccess
+* AmazonElasticFileSystemFullAccess
+* AmazonEKS_CNI_Policy
+* EKSFullAccess
+
+
+## 1.2 Create a Bastion Host in your VPC to administer your cluster
+
+To administer your EKS cluster easily, create a administrative host, called the Bastion Host.
+
+The bastion host will be a small Linux host to upload the docker images to the registry and administer the cluster.
+It is recommended that the host is in the same VPC as your kubernetes cluster. This will simplify the access to the cluster resources and the administration.
+
+The host can use a very small server e.g. t2.medium as no compute power is necessary.
+
+**AWS Console**
+
+Open the AWS Console and create the Bastion Host.
+You can use a small instance type like t3a.medium.
+Place the host into the the new VPC as you will use it for your Kubernetes Cluster.
+Attach the EKSManager Role you created in 1.1 to the instance.
+
+* Use CentOS or AWS Linux as OS for the Bastion Host. Other Linux systems should also be possible as long as you can install Docker CE onto them.
+All provided scripts are created on CentOS or RHEL Server. They are not tested with other Linux distributions. 
+* Open port 22 (SSH) to access your Bastion Host from everywhere.
+* Make sure a public IP is assigned. Either assign an Elastic IP afterwards or make sure "Auto-assign Public IP" is set to enable.
+* Make sure you assign 30GB of Hard Disk space to your new instance. You need this disk space to extract the Component Pack.
+
+
+## 1.3 Add the required software to your Bastion Host
+
+Connect to your new host and install this software:
+
+### 1.3.1 Add the epel repo and update the os:
+
+```
+sudo yum -y install epel-release
+sudo yum update
+sudo yum -y install vim nano unzip bind-utils
+
+```
+
+### 1.3.2 Install AWS CLI and eksctl
+
+Login to your new Bastion host using ssh and install the required tools:
+
+```
+# Install AWS CLI
+sudo yum -y install epel-release
+sudo yum -y install python34-pip python34
+sudo pip3.4 install --upgrade pip
+sudo pip3.4 install awscli --upgrade
+
+# Check AWS CLI Version
+aws --version
+
+# Check AWS IAM Role that it contains the EKSManager role you created and assigned to your Bastion Host.
+aws sts get-caller-identity
+```
+
+### 1.3.3 Install eksctl
+
+download and install:
+
+```
+# Download and extract the latest release of eksctl with the following command.
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/latest_release/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+
+# Move the extracted binary to /usr/bin.
+sudo mv /tmp/eksctl /usr/bin
+
+# Test that your installation was successful with the following command.
+eksctl version
+
+```
+
+### 1.3.4 Install git to clone this repository to have the scripts available.
+
+```
+sudo yum -y update
+sudo yum -y install git
+git clone https://github.com/becketalservices/beas-cnx-cloud.git
+
+```
+
+### 1.3.5 Install and Configure kubectl for Amazon EKS
+
+To install kubectl:
+
+```
+cat <<EOF > /tmp/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOF
+sudo mv /tmp/kubernetes.repo /etc/yum.repos.d/
+sudo yum install -y kubectl
+
+```
+
+### 1.3.6 Install _aws-iam-authenticator_ for Amazon EKS
+
+```
+curl -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/linux/amd64/aws-iam-authenticator
+chmod 755 aws-iam-authenticator
+sudo mv aws-iam-authenticator /usr/bin/
+
+```
+
+### 1.3.7 Install helm
 
 **Install helm binary**
 
 Download and extract the helm binaries:
 
 ```
-sudo curl -L -o helm-v2.11.0-linux-amd64.tar.gz \
+curl -L -o helm-v2.11.0-linux-amd64.tar.gz \
   "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-amd64.tar.gz"
-sudo tar -zxvf helm-v2.11.0-linux-amd64.tar.gz
-sudo mv linux-amd64/helm /usr/bin/helm
+tar -zxvf helm-v2.11.0-linux-amd64.tar.gz
+sudo mv $HOME/linux-amd64/helm /usr/bin/helm
+
+# check that helm is available
+helm version --client
 
 ```
 
-**Create a kubernetes service account**
-
-As we have rbac enabled on our cluster, we need to create an service account so that helm can act on our cluster.
-
-The given instructions are based on [Role-based Access Control](https://github.com/helm/helm/blob/master/docs/rbac.md).
-
-To create the service account, allow helm to manage the whole cluster and configure helm to use it, run this commands:
-
-```
-# Create rbac configuration for helm
-kubectl apply -f beas-cnx-cloud/Azure/helm/rbac-config.yaml
-
-# Initialize helm and deploy server side tiller component
-helm init --service-account tiller
-
-```
-
-To check your helm installation and your successful connection to the cluster run `helm version`
-
-
-## 2.2 Install Docker
+### 1.3.7 Install Docker
 
 Docker is only necessary to deploy the Docker images into the registry or to build your own Docker images.
 
@@ -43,10 +187,13 @@ Docker is only necessary to deploy the Docker images into the registry or to bui
 
 The instructions about the docker installation are taken from the [IBM Documentation](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereq_kubernetes_nonha.html).
 
-For the installation run the script **as root**:
+For the installation run the script:
 
 ```
-bash beas-cnx-cloud/Azure/scripts/install_docker.sh
+sudo bash $HOME/beas-cnx-cloud/Azure/scripts/install_docker.sh
+
+# to check your docker version run
+sudo docker version
 
 ```
 
@@ -69,3 +216,13 @@ sudo usermod -a -G docker ec2-user
 
 To verify that docker is installed correctly run: `docker version`
 
+## 1.4 Schedule bastion host shutdown
+
+On Azure you can configure your server to shut down on a certain time each day. This is quite handy so save some mony.
+
+run this command as root to add the shutdown your bastion host a 7pm.
+
+```
+echo "0 19 * * * /usr/sbin/shutdown -h 10 'Power Off in 10 minutes'"| sudo crontab -
+
+```
