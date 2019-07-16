@@ -1,11 +1,11 @@
 # 7 Update Component Pack
-This proces does the update to Component Pack 6.0.0.7
+This process does the update to Component Pack 6.0.0.8
 
 We need the installation files from IBM to continue.
 
 Download the files to your Bastion host and extract them. In case you have your files on a Azure file share or AWS S3, you can use my [s3scripts](https://github.com/MSSputnik/s3scripts) to access your files.
 
-Just extract them: `unzip IC-ComponentPack-6.0.0.7.zip`
+Just extract them: `unzip IC-ComponentPack-6.0.0.8.zip`
 
 
 ## 7.1 Upload Docker images to registry
@@ -25,6 +25,8 @@ Add the URL to our docker registry to the settings.sh file. The URL is necessary
 When the task is finished and you choose to upload all images, 3.5 GB of data were uploaded to your registry.
 
 ```
+## Depending on your docker installation, this commands must be executed as root.
+
 # move into the support directory of the IBM CP installation files
 cd microservices_connections/hybridcloud/support
 
@@ -51,11 +53,14 @@ sed -i "s/^docker login/#docker login/" setupImages.sh
   -p dummy \
   -st customizer,elasticsearch,orientme
 
+# back to the root directory
+cd 
+
 ```
 
 In case your login times out, you can always rerun the login command and the last setupImages.sh command.
 
-In case you have pushed all images to the registry or you are sure you do not need more, you can remove the "images" directory and the download IC-ComponentPack-6.0.0.7.zip.zip so save disk space.
+In case you have pushed all images to the registry or you are sure you do not need more, you can remove the "images" directory and the download IC-ComponentPack-6.0.0.*.zip so save disk space.
 
 You can also remove the local docker images as they are also not necessary anymore. **This command removes all locally stored docker images**
 
@@ -98,7 +103,7 @@ ic.interserviceScheme=https
 . ~/settings.sh
 
 helm upgrade \
-  infrastructure microservices_connections/hybridcloud/helmbuilds/infrastructure-0.1.0-20190205-020035.tgz \
+  infrastructure microservices_connections/hybridcloud/helmbuilds/infrastructure-0.1.0-20190329-081444.tgz \
 --set \
 global.onPrem=true,\
 global.image.repository=${ECRRegistry}/connections,\
@@ -121,7 +126,7 @@ When you do not use ISAM:
 . ~/settings.sh
 
 helm upgrade \
-  orientme microservices_connections/hybridcloud/helmbuilds/orientme-0.1.0-20190205-020134.tgz \
+  orientme microservices_connections/hybridcloud/helmbuilds/orientme-0.1.0-20190329-081601.tgz \
 --set \
 global.onPrem=true,\
 global.image.repository=${ECRRegistry}/connections,\
@@ -147,7 +152,7 @@ Wait until the ready state is 1/1 or 2/2 for all running pods.
 . ~/settings.sh
 
 helm upgrade \
-  elasticsearch microservices_connections/hybridcloud/helmbuilds/elasticsearch-0.1.0-20190204-020030.tgz \
+  elasticsearch microservices_connections/hybridcloud/helmbuilds/elasticsearch-0.1.0-20190314-020037.tgz \
 --set \
 image.repository=${ECRRegistry}/connections,\
 nodeAffinityRequired=$nodeAffinityRequired
@@ -165,7 +170,7 @@ Check if all pods are running: `watch -n 10 "kubectl get pods -n connections -o 
 . ~/settings.sh
 
 helm upgrade \
-  mw-proxy microservices_connections/hybridcloud/helmbuilds/mw-proxy-0.1.0-20190201-020054.tgz \
+  mw-proxy microservices_connections/hybridcloud/helmbuilds/mw-proxy-0.1.0-20190328-020041.tgz \
 --set \
 image.repository=${ECRRegistry}/connections,\
 deploymentType=hybrid_cloud
@@ -183,13 +188,13 @@ Check if all pods are running: `watch -n 10 "kubectl get pods -n connections"`
 
 # Upgrade Sanity Helm chart
 helm upgrade \
-  sanity microservices_connections/hybridcloud/helmbuilds/sanity-0.1.8-20190201-143401.tgz \
+  sanity microservices_connections/hybridcloud/helmbuilds/sanity-0.1.8-20190321-150210.tgz \
 --set \
 image.repository=${ECRRegistry}/connections
 
 # Upgrade Sanity Watcher Helm chart
 helm upgrade \
-  sanity-watcher microservices_connections/hybridcloud/helmbuilds/sanity-watcher-0.1.0-20190204-022029.tgz \
+  sanity-watcher microservices_connections/hybridcloud/helmbuilds/sanity-watcher-0.1.0-20190328-022032.tgz \
 --set \
 image.repository=${ECRRegistry}/connections
 

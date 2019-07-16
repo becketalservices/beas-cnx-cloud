@@ -144,7 +144,7 @@ sed -i "s/^docker login/#docker login/" setupImages.sh
 
 In case your login times out, you can always rerun the login command and the last setupImages.sh command.
 
-In case you have pushed all images to the registry or you are sure you do not need more, you can remove the "images" directory and the download IC-ComponentPack-6.0.0.6.zip.zip so save disk space.
+In case you have pushed all images to the registry or you are sure you do not need more, you can remove the "images" directory and the download IC-ComponentPack-6.0.0.*.zip so save disk space.
 
 You can also remove the local docker images as they are also not necessary anymore. **This command removes all locally stored docker images**
 
