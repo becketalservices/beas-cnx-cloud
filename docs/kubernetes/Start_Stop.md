@@ -123,12 +123,13 @@ kubectl -n connections scale deployment community-suggestions --replicas=3
 kubectl -n connections scale deployment analysisservice --replicas=3  
 kubectl -n connections scale deployment indexingservice --replicas=3  
 kubectl -n connections scale deployment retrievalservice --replicas=3  
-kubectl -n connections scale deployment orient-web-client --replicas=3  
 kubectl -n connections scale deployment people-migrate --replicas=1  
 kubectl -n connections scale deployment people-idmapping --replicas=3  
 kubectl -n connections scale deployment people-scoring --replicas=3  
 kubectl -n connections scale deployment people-relation --replicas=3  
 kubectl -n connections scale deployment userprefs-service --replicas=3  
+# Wait until all services startd. Then start:
+kubectl -n connections scale deployment orient-web-client --replicas=3  
 ```
 
 ## Start MW-Proxy
