@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Modify for your environment.
 # ACR_NAME: The name of your Azure Container Registry

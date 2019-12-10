@@ -1,6 +1,6 @@
 #!/bin/bash
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Create our Kubernetes cluster
 az aks create \

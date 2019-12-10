@@ -152,7 +152,7 @@ helm install \
   
 ```
 
-to create the CA cluster issuer configuration update your settings.sh:  
+to create the CA cluster issuer configuration update your installsettings.sh:  
 Required parameters:
 
 ```
@@ -188,7 +188,7 @@ External services exist to create a pointer to external systems. This creates a 
 
 Use the new backend DNS name as external name for this resource.
 
-Update your component pack configuration in your settings.sh:  
+Update your component pack configuration in your installsettings.sh:  
 
 ```
 # Component Pack
@@ -207,7 +207,7 @@ To create the external service for your existing infrastructure run:
 
 ```
 # Load settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Create external service cnx-backend
 kubectl -n connections create service externalname cnx-backend --external-name $ic_internal

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-. ~/settings.sh
+. ~/installsettings.sh
 if [ -z "$acme_email" ]; then
-  echo "No Registration E-Mail configured. Update your settings.sh acme_email="
+  echo "No Registration E-Mail configured. Update your installsettings.sh acme_email="
   exti 1
 fi
 

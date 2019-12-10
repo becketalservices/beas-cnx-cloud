@@ -6,7 +6,7 @@ Microsoft already provided the tools for you. The default install location is no
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Install kubectl command
 az aks install-cli --install-location /usr/bin/kubectl

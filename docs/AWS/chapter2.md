@@ -11,7 +11,7 @@ As some variables like your VPCId is required more often, create a file with thi
 
 ```
 # Write our environment settings
-cat > ~/settings.sh <<EOF
+cat > ~/installsettings.sh <<EOF
 # EKS settings
 EKSName="cluster name e.g. CNX_Test_EKS" 
 EKSNodeType=m5a.xlarge
@@ -54,7 +54,7 @@ For all options and probably adoptions in your environment see the `eksctl help`
 
 ```
 # Load settings file
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Run eksctl
 eksctl create cluster \
@@ -136,7 +136,7 @@ kubectl apply -f beas-cnx-cloud/AWS/kubernetes/aws-efs-sc.yml
 
 To check that the storage class has been created run `kubectl get storageclass aws-efs`
 
-In case you named your storage class differently, update the settings.sh file. 
+In case you named your storage class differently, update the installsettings.sh file. 
 
 
 **RBAC rights**

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ~/settings.sh
+. ~/installsettings.sh
 
 cat <<EOF | kubectl apply -f -
 apiVersion: extensions/v1beta1

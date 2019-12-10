@@ -96,7 +96,7 @@ As some variables like your resource group name or the region is required more o
 
 ```
 # Write our environment settings
-cat > ~/settings.sh <<EOF
+cat > ~/installsettings.sh <<EOF
 AZRegion=westus
 AZResourceGroup=CPResourceGroup
 AZStoreAccount=cpstorageacct1
@@ -128,7 +128,7 @@ See the [az acr create](https://docs.microsoft.com/en-us/cli/azure/acr?view=azur
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Create our Docker Registry
 az acr create --resource-group $AZResourceGroup \
@@ -145,7 +145,7 @@ We need this service principal to autorize the kubernetes services to pull the i
 
 The instructions on how to creates this account are taken from this [Microsoft documentation](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal).
 
-I slightly modified the script to use our settings.sh file:
+I slightly modified the script to use our installsettings.sh file:
 
 ```
 bash beas-cnx-cloud/Azure/scripts/create_service_principal.sh
@@ -163,7 +163,7 @@ By now, you have a Resource Group to group your environment and a Docker Registr
 
 As next step, we can create the Kubernetes Cluster.
 
-* Make sure you have filled in the settings.sh from above when you want to use the script.
+* Make sure you have filled in the installsettings.sh from above when you want to use the script.
 You can modify the script to your needs.
 * The script will instruct the command to create ssh keys to access the VMs for you. If you want to use your already existing ssh keys, modify the script accordingly.
 * The script will instruct the command to crate a service principal account for you. If you want to use your already existing service principal account, modify the script accordingly.
@@ -194,7 +194,7 @@ Create your new storage account:
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Get RG
 AZNodeRG=$(az aks show --resource-group $AZResourceGroup \
@@ -212,7 +212,7 @@ Retrieve your account key. You need it to create an Azure file share.
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Get storage account key
 AZStoreKey=$(az storage account keys list --resource-group $AZNodeRG \

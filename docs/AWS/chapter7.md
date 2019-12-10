@@ -20,7 +20,7 @@ The IBM instructions are found on page [Pushing Docker images to the Docker regi
 Modify the -st parameter to your needs. When you omit this parameter, all images are uploaded.  
 As we just remove the `docker login` command from the script, the username and password parameters are still mandatory but irrelevant.
 
-Add the URL to our docker registry to the settings.sh file. The URL is necessary later again. [Amazon ECR Registries](https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html)
+Add the URL to our docker registry to the installsettings.sh file. The URL is necessary later again. [Amazon ECR Registries](https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html)
 
 When the task is finished and you choose to upload all images, 3.5 GB of data were uploaded to your registry.
 
@@ -40,7 +40,7 @@ $(aws ecr get-login --no-include-email)
 
 # Load our environment settings
 # add ECRRegistry=aws_account_id.dkr.ecr.region.amazonaws.com
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Modify the installation script to comment out the docker login command.
 sed -i "s/^docker login/#docker login/" setupImages.sh
@@ -79,7 +79,7 @@ All shown commands use as much default values as possible. Check IBM documentati
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm upgrade \
   connections-env microservices_connections/hybridcloud/helmbuilds/connections-env-0.1.40-20190122-110818.tgz \
@@ -100,7 +100,7 @@ ic.interserviceScheme=https
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm upgrade \
   infrastructure microservices_connections/hybridcloud/helmbuilds/infrastructure-0.1.0-20190329-081444.tgz \
@@ -123,7 +123,7 @@ When you do not use ISAM:
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm upgrade \
   orientme microservices_connections/hybridcloud/helmbuilds/orientme-0.1.0-20190329-081601.tgz \
@@ -149,7 +149,7 @@ Wait until the ready state is 1/1 or 2/2 for all running pods.
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm upgrade \
   elasticsearch microservices_connections/hybridcloud/helmbuilds/elasticsearch-0.1.0-20190314-020037.tgz \
@@ -167,7 +167,7 @@ Check if all pods are running: `watch -n 10 "kubectl get pods -n connections -o 
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm upgrade \
   mw-proxy microservices_connections/hybridcloud/helmbuilds/mw-proxy-0.1.0-20190328-020041.tgz \
@@ -183,7 +183,7 @@ Check if all pods are running: `watch -n 10 "kubectl get pods -n connections"`
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 
 # Upgrade Sanity Helm chart
@@ -204,7 +204,7 @@ image.repository=${ECRRegistry}/connections
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 
 helm upgrade \

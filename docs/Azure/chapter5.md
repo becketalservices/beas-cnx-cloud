@@ -50,7 +50,7 @@ More details can be found in the [IBM Knowledge Center](https://www.ibm.com/supp
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Set your credentials
 service_principal_id=<Service principal ID>
@@ -77,7 +77,7 @@ When the task is finished and you choose to upload all images, 3.5 GB of data we
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 # move into the support directory of the IBM CP installation files
 cd microservices_connections/hybridcloud/support
@@ -156,12 +156,12 @@ All shown commands use as much default values as possible. Check IBM documentati
 
 [Bootstrapping the Kubernetes Cluster](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_bootstrap.html)
 
-**The master_ip is currently not set in the settings.sh as the master can not used to forward traffic. I assume that this configuration is for the automatic redis configuration. Probably creating the load balancer for redis at this point could give you the right IP address. For now I did not set the master_id and set "skip_configure_redis=true"**
+**The master_ip is currently not set in the installsettings.sh as the master can not used to forward traffic. I assume that this configuration is for the automatic redis configuration. Probably creating the load balancer for redis at this point could give you the right IP address. For now I did not set the master_id and set "skip_configure_redis=true"**
 
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=bootstrap microservices_connections/hybridcloud/helmbuilds/bootstrap-0.1.0-20181008-114142.tgz \
@@ -183,7 +183,7 @@ env.skip_configure_redis=true
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=connections-env microservices_connections/hybridcloud/helmbuilds/connections-env-0.1.40-20181011-103145.tgz \
@@ -207,7 +207,7 @@ ic.interserviceScheme=https
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=infrastructure microservices_connections/hybridcloud/helmbuilds/infrastructure-0.1.0-20181014-210242.tgz \
@@ -230,7 +230,7 @@ When you do not use ISAM:
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=orientme microservices_connections/hybridcloud/helmbuilds/orientme-0.1.0-20181014-210314.tgz \
@@ -257,7 +257,7 @@ Check if all pods are running: `kubectl get pods -n connections`
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=elasticsearch microservices_connections/hybridcloud/helmbuilds/elasticsearch-0.1.0-20180921-115419.tgz \
@@ -278,7 +278,7 @@ Check if all pods are running: `kubectl get pods -n connections -o wide`
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=mw-proxy microservices_connections/hybridcloud/helmbuilds/mw-proxy-0.1.0-20181012-071823.tgz \
@@ -333,7 +333,7 @@ Follow the instructions from Microsoft to access your dashboard: <https://docs.m
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 
 # Install Sanity Helm chart

@@ -1,4 +1,4 @@
-. ~/settings.sh
+. ~/installsettings.sh
 
 cat > azure_sc.yaml << EOF
 kind: StorageClass

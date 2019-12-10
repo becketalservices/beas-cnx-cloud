@@ -42,7 +42,7 @@ The es-pvc-backup persistent volume must be placed on a NFS file share as the lo
 # all storages or different sizes.
 
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Create ElasticSearch Volumes on the default storage (gp2)
 helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
@@ -109,7 +109,7 @@ The IBM instructions are found on page [Pushing Docker images to the Docker regi
 Modify the -st parameter to your needs. When you omit this parameter, all images are uploaded.  
 As we just remove the `docker login` command from the script, the username and password parameters are still mandatory but irrelevant.
 
-Add the URL to our docker registry to the settings.sh file. The URL is necessary later again. [Amazon ECR Registries](https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html)
+Add the URL to our docker registry to the installsettings.sh file. The URL is necessary later again. [Amazon ECR Registries](https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html)
 
 When the task is finished and you choose to upload all images, 3.5 GB of data were uploaded to your registry.
 
@@ -127,7 +127,7 @@ $(aws ecr get-login --no-include-email)
 
 # Load our environment settings
 # add ECRRegistry=aws_account_id.dkr.ecr.region.amazonaws.com
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Modify the installation script to comment out the docker login command.
 sed -i "s/^docker login/#docker login/" setupImages.sh
@@ -166,12 +166,12 @@ All shown commands use as much default values as possible. Check IBM documentati
 
 In case you currently set up only parts of the infrastructure but plan to extend it later, make sure you set the full starter\_stack\_list="elasticsearch customizer orientme". The bootstrap process creates certificates and other required artifacts which will be missing when you create the other infrastructure components later.
 
-**The master_ip is currently not set in the settings.sh as the master can not used to forward traffic. I assume that this configuration is for the automatic redis configuration. Probably creating the load balancer for redis at this point could give you the right IP address. For now I did not set the master_id and set "skip_configure_redis=true"**
+**The master_ip is currently not set in the installsettings.sh as the master can not used to forward traffic. I assume that this configuration is for the automatic redis configuration. Probably creating the load balancer for redis at this point could give you the right IP address. For now I did not set the master_id and set "skip_configure_redis=true"**
 
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=bootstrap microservices_connections/hybridcloud/helmbuilds/bootstrap-0.1.0-20181008-114142.tgz \
@@ -193,7 +193,7 @@ env.skip_configure_redis=true
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=connections-env microservices_connections/hybridcloud/helmbuilds/connections-env-0.1.40-20181011-103145.tgz \
@@ -217,7 +217,7 @@ ic.interserviceScheme=https
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=infrastructure microservices_connections/hybridcloud/helmbuilds/infrastructure-0.1.0-20181014-210242.tgz \
@@ -242,7 +242,7 @@ When you do not use ISAM:
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=orientme microservices_connections/hybridcloud/helmbuilds/orientme-0.1.0-20181014-210314.tgz \
@@ -270,7 +270,7 @@ Wait until the ready state is 1/1 or 2/2 for all running pods.
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=elasticsearch microservices_connections/hybridcloud/helmbuilds/elasticsearch-0.1.0-20180921-115419.tgz \
@@ -291,7 +291,7 @@ Check if all pods are running: `kubectl get pods -n connections -o wide`
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 helm install \
 --name=mw-proxy microservices_connections/hybridcloud/helmbuilds/mw-proxy-0.1.0-20181012-071823.tgz \
@@ -314,7 +314,7 @@ Check if all pods are running: `kubectl get pods -n connections`
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 
 helm install \
@@ -340,7 +340,7 @@ Follow the tutorial [Tutorial: Deploy the Kubernetes Web UI (Dashboard)](https:/
 
 ```
 # Load our environment settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 
 # Install Sanity Helm chart

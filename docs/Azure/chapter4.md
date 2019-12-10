@@ -112,7 +112,7 @@ To create the external service for your existing infrastructure run:
 
 ```
 # Load settings
-. ~/settings.sh
+. ~/installsettings.sh
 
 # Create external service cnx-backend
 kubectl -n connections create service externalname cnx-backend --external-name $ic_internal
