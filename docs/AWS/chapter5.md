@@ -175,8 +175,10 @@ In case you currently set up only parts of the infrastructure but plan to extend
 # Load our environment settings
 . ~/installsettings.sh
 
+helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/bootstrap*)
+
 helm install \
---name=bootstrap microservices_connections/hybridcloud/helmbuilds/bootstrap-0.1.0-20181008-114142.tgz \
+--name=bootstrap $helmchart \
 --set \
 image.repository=${ECRRegistry}/connections,\
 env.set_ic_admin_user=$ic_admin_user,\
@@ -197,8 +199,10 @@ env.skip_configure_redis=true
 # Load our environment settings
 . ~/installsettings.sh
 
+helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/connections-env*)
+
 helm install \
---name=connections-env microservices_connections/hybridcloud/helmbuilds/connections-env-0.1.40-20181011-103145.tgz \
+--name=connections-env $helmchart \
 --set \
 onPrem=true,\
 createSecret=false,\
@@ -221,8 +225,10 @@ ic.interserviceScheme=https
 # Load our environment settings
 . ~/installsettings.sh
 
+helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/infrastructure*)
+
 helm install \
---name=infrastructure microservices_connections/hybridcloud/helmbuilds/infrastructure-0.1.0-20181014-210242.tgz \
+--name=infrastructure $helmchart \
 --set \
 global.onPrem=true,\
 global.image.repository=${ECRRegistry}/connections,\
@@ -246,8 +252,10 @@ When you do not use ISAM:
 # Load our environment settings
 . ~/installsettings.sh
 
+helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/orientme*)
+
 helm install \
---name=orientme microservices_connections/hybridcloud/helmbuilds/orientme-0.1.0-20181014-210314.tgz \
+--name=orientme $helmchart \
 --set \
 global.onPrem=true,\
 global.image.repository=${ECRRegistry}/connections,\
@@ -274,8 +282,10 @@ Wait until the ready state is 1/1 or 2/2 for all running pods.
 # Load our environment settings
 . ~/installsettings.sh
 
+helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/elasticsearch*)
+
 helm install \
---name=elasticsearch microservices_connections/hybridcloud/helmbuilds/elasticsearch-0.1.0-20180921-115419.tgz \
+--name=elasticsearch $helmchart \
 --set \
 image.repository=${ECRRegistry}/connections,\
 nodeAffinityRequired=$nodeAffinityRequired
@@ -295,8 +305,10 @@ Check if all pods are running: `kubectl get pods -n connections -o wide`
 # Load our environment settings
 . ~/installsettings.sh
 
+helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/mw-proxy*)
+
 helm install \
---name=mw-proxy microservices_connections/hybridcloud/helmbuilds/mw-proxy-0.1.0-20181012-071823.tgz \
+--name=mw-proxy $helmchart \
 --set \
 image.repository=${ECRRegistry}/connections,\
 deploymentType=hybrid_cloud
@@ -318,9 +330,10 @@ Check if all pods are running: `kubectl get pods -n connections`
 # Load our environment settings
 . ~/installsettings.sh
 
+helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/elasticstack*)
 
 helm install \
---name=elasticstack microservices_connections/hybridcloud/helmbuilds/elasticstack-0.1.0-20181014-210326.tgz \
+--name=elasticstack $helmchart \
 --set \
 global.onPrem=true,\
 global.image.repository=${ECRRegistry}/connections,\
@@ -344,16 +357,19 @@ Follow the tutorial [Tutorial: Deploy the Kubernetes Web UI (Dashboard)](https:/
 # Load our environment settings
 . ~/installsettings.sh
 
+helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/sanity-[0-9]*)
 
 # Install Sanity Helm chart
 helm install \
---name=sanity microservices_connections/hybridcloud/helmbuilds/sanity-0.1.8-20181010-163810.tgz \
+--name=sanity $helmchart \
 --set \
 image.repository=${ECRRegistry}/connections
 
+helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/sanity-watcher*)
+
 # Install Sanity Watcher Helm chart
 helm install \
---name=sanity-watcher microservices_connections/hybridcloud/helmbuilds/sanity-watcher-0.1.0-20180830-052154.tgz \
+--name=sanity-watcher $helmchart \
 --set \
 image.repository=${ECRRegistry}/connections
 
