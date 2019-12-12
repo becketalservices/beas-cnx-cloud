@@ -29,7 +29,7 @@ The process is described by IBM on page [Configuring the NGINX proxy server for 
 After the restart, your old infrastructure should behave normal. If not, you need to debug the configuration change and make sure the DNS entries point to the right systems.
 
 
-# 4.1 Installing an Ingress Controller
+# 4.2 Installing an Ingress Controller
 
 The Customizer requires a reverse proxy in front of the whole infrastructure so that some specific HTTP URLs can be redirected to the Customizer for modification. IBM suggests to use a nginx server. As it is a common problem on kubernetes infrastructures to redirect HTTP(s) traffic to different backend services (internal servers and external endpoints) out of the box solutions exists that can be used.
 
@@ -93,14 +93,20 @@ kubectl -n connections patch configmap connections-nginx-ingress-controller --pa
 
 ```
 
-# 4.3 Make sure your DNS resolution is right
+# 4.4 Make sure your DNS resolution and service configuration is right
 
-## 4.3.1 DNS entry for external traffic
+## 4.4.1 DNS entry for external traffic
 
 This is traffic that comes from outside of your network. This users use the external facing load balancer that was created automatically in 4.1 Installing an Ingress Controller.  
 Make sure your public FQDN for your instance is pointing to the load balancer name as CNAME record in your public facing DNS.
 
-## 4.3.1 DNS entry for internal traffic
+To configure the DNS entry for your LB via script run:
+
+```
+bash beas-cnx-cloud/AWS/scripts/setupDNS4Ingress.sh
+```
+
+## 4.4.2 DNS entry for internal traffic
 
 This traffic that comes from inside of your network. This are your backend servers, the component pack servers itself or internal users.   
 The Load Balancer for this traffic was probably created when you choose the private facing ingress controller.  
@@ -114,12 +120,18 @@ kubectl apply -f beas-cnx-cloud/AWS/kubernetes/aws-intenal-lb.yaml
 
 Make sure your public FQDN for your instance is pointing to the internal load balancer name as CNAME record in your private facing DNS.
 
+To configure the DNS entry for your LB via script run:
 
-# 4.3 Get SSL Certificate
+```
+bash beas-cnx-cloud/AWS/scripts/setupDNS4Ingress.sh
+```
+
+
+# 4.5 Get SSL Certificate
 
 To secure your traffic a ssl certificate is necessary. This certificate must be added to a kubernetes secret.
 
-## 4.3.1 Automatic SSL Certificate retrieval and renewal
+## 4.5.1 Automatic SSL Certificate retrieval and renewal
 When using the ingress controller together with the [cert-manager](https://github.com/jetstack/cert-manager) , the necessary ssl certificates can be retrieved automatically. This setup is currently described here as it is documented by Microsoft on the page [Install cert-manager](https://docs.microsoft.com/en-us/azure/aks/ingress-tls#install-cert-manager).
 
 ** The SSL Certificate retrieval only works, when you are using a pulbic Load Balancer (The ingress controller is accessible via http (port 80) from the public internet and your productive DNS entry is already pointing to your load balancer. (see Topic 4.7) **
@@ -169,7 +181,7 @@ bash beas-cnx-cloud/Azure/scripts/ca_cluster_issuer.sh
 
 ```
 
-## 4.3.2 Manual SSL Certificate creation
+## 4.5.2 Manual SSL Certificate creation
 If you want to use an other CA managed certificate or a self singed certificate create the secret manually.  
 For simplicity we use a self singed certificate in this documentation. Example: [TLS certificate termination](https://github.com/kubernetes/contrib/tree/master/ingress/controllers/nginx/examples/tls)
 
@@ -182,7 +194,7 @@ kubectl -n connections create secret tls tls-secret --key /tmp/tls.key --cert /t
 
 ```
 
-# 4.4 Configure your existing infrastructure as external service
+# 4.6 Configure your existing infrastructure as external service
 
 External services exist to create a pointer to external systems. This creates a CNAME entry inside the Kubernetes DNS. 
 
@@ -214,7 +226,7 @@ kubectl -n connections create service externalname cnx-backend --external-name $
 
 ```
 
-# 4.5 Create a ingress resource to forward the traffic
+# 4.7 Create a ingress resource to forward the traffic
 
 The basic ingress resource will proxy all traffic from the public IP to the old infrastructure. The resources to forward some specific paths to Customizer will be added later.
 
@@ -226,7 +238,7 @@ bash beas-cnx-cloud/Azure/scripts/cnx_ingress.sh
 
 ```
 
-# 4.6 Test your forwarding
+# 4.8 Test your forwarding
 
 To test your forwarding, you can use curl or wget. I do not recommend to use a browser as the forwarding is not fully functional yet and with a full browser it is not that easy to see the details.
 
@@ -253,7 +265,7 @@ The error causes are the same as above.
 
 You can now use a browser to test the access.
 
-# 4.7 Point your DNS to the front door
+# 4.9 Point your DNS to the front door
 
 When your can access your old infrastructure through the reverse proxy, you can modify the DNS entry for your connections infrastructure to use the load balancer public IP.
 

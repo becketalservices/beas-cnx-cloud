@@ -114,6 +114,12 @@ Add the URL to our docker registry to the installsettings.sh file. The URL is ne
 When the task is finished and you choose to upload all images, 3.5 GB of data were uploaded to your registry.
 
 ```
+# Load our environment settings
+# add ECRRegistry=aws_account_id.dkr.ecr.region.amazonaws.com
+# add AWSRegion= - your AWS Region - 
+# add starter_stack_list= - the stack list to install -
+. ~/installsettings.sh
+
 # move into the support directory of the IBM CP installation files
 cd microservices_connections/hybridcloud/support
 
@@ -123,11 +129,7 @@ for i in $(grep -Po 'docker push \${DOCKER_REGISTRY}\/\K[^:]+' setupImages.sh); 
 done 
 
 # Login with your account to the docker registry
-$(aws ecr get-login --no-include-email)
-
-# Load our environment settings
-# add ECRRegistry=aws_account_id.dkr.ecr.region.amazonaws.com
-. ~/installsettings.sh
+$(aws ecr get-login --no-include-email --region ${AWSRegion})
 
 # Modify the installation script to comment out the docker login command.
 sed -i "s/^docker login/#docker login/" setupImages.sh
@@ -138,7 +140,7 @@ sed -i "s/^docker login/#docker login/" setupImages.sh
 ./setupImages.sh -dr ${ECRRegistry} \
   -u dummy \
   -p dummy \
-  -st customizer,elasticsearch,orientme
+  -st ${starter_stack_list} 
 
 ```
 
