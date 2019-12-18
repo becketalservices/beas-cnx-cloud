@@ -1,7 +1,7 @@
 #!/bin/bash
 . ~/installsettings.sh
 
-controller="connections-nginx-ingress-controller connections-nginx-ingress-controller-intern"
+controller="connections-nginx-ingress-controller connections-nginx-ingress-controller-intern global-nginx-nginx-ingress-controller global-nginx-nginx-ingress-controller-extern"
 
 for c in $controller; do
   echo "Check for Controller: $c"

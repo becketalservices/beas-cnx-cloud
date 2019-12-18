@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: nginx-ingress
+    component: controller
+    release: global-nginx 
+  name: global-nginx-nginx-ingress-controller-extern
+  namespace: connections
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "590"
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
+  selector:
+    app: nginx-ingress
+    component: controller
+    release: global-nginx
+  sessionAffinity: None
+  type: LoadBalancer
