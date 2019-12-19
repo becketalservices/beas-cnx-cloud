@@ -28,7 +28,7 @@ spec:
         backend:
           serviceName: mw-proxy 
           servicePort: 80
-      - path: /blogs|/news|/activities/service/html|/profiles/html|/viewer
+      - path: /blogs|/news|/activities/service/html|/profiles/html|/viewer|/boards($|/my$|/public$|/archive$|/templates|/todos|/board)
         backend:
           serviceName: mw-proxy 
           servicePort: 80
