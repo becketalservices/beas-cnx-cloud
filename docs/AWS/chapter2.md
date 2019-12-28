@@ -24,26 +24,41 @@ SUBNETID=<List of Subnet IDs e.g.: subnet-a9189fe2,subnet-50432629>
 #SecGroup=<Security Group e.g.: sg-f5c54184>
 #IAMRoleName=<IAM Role Name>
 
+# Route53
+HostedZoneId="HostedZoneId"
+HostedZoneIdPublic="HostedZoneIdPublic"
+
 # EFS settings
 storageclass=aws-efs
 
 # ECR settings
-ECRRegistry=<your docker registry>
+ECRRegistry="your docker registry"
 
 # Certificte related settings
-acme_email=<your enterprise email>
-use_lestencrypt_prod=[true/false]
+acme_email="your enterprise email"
+use_lestencrypt_prod="[true/false]"
 
 # Component Pack
-ic_admin_user=admin_user
-ic_admin_password=admin_password
-ic_internal=ic_internal
-ic_front_door=ic_front_door
-master_ip=
+GlobalDomainName="global domain name"
+ic_admin_user="admin_user"
+ic_admin_password='admin_password'
+ic_internal="ic_internal"
+ic_front_door="ic_front_door"
+master_ip="ic_internal"
 # "elasticsearch customizer orientme"
-starter_stack_list="elasticsearch customizer orientme"
+starter_stack_list=""
 # for test environments with just one node or no taint nodes, set to false.
 nodeAffinityRequired=true
+
+# KUDOS
+KudosBoardsLicense=""
+KudosBoardsClientSecret="this_value_must_be_filled_in_when_connections_is_up_and_running"
+db2host="activites db host"
+db2port=50000
+oracleservice=
+oracleconnect=''
+cnxdbusr="activites db user"
+cnxdbpwd='activites db password'
 EOF
 
 ```
@@ -122,6 +137,41 @@ Create your EFS Storage by following the AWS documentation [Step 2: Create Your 
 
 The security group is named `eksctl-<EKSName>-cluster-ClusterSharedNodeSecurityGroup-<Random String>`
 
+To use aws cli to create the EFS, use this commands:
+
+```
+. ~/installsettings.sh
+
+# get the security group name: 
+groupid=$(aws ec2 describe-security-groups \
+  --region=$AWSRegion \
+  --filter "Name=group-name,Values=eksctl-${EKSName}-cluster-ClusterSharedNodeSecurityGroup-*" \
+  --query "SecurityGroups[*].{Name:GroupId}")
+echo $groupid
+
+# Create EFS File System
+aws efs create-file-system \
+--creation-token $EKSName \
+--performance-mode generalPurpose \
+--throughput-mode bursting \
+--tags Key=Name,Value="$EKSName"
+--region $AWSRegion
+
+# Get FSId
+efsid=$(aws efs describe-file-systems --creation-token $EKSName  --query "FileSystems[*].FileSystemId")
+echo $efsid
+
+# Create Mount Targets in every subnet
+for sid in $(echo $SUBNETID| tr ',' ' '); \
+do aws efs create-mount-target \
+--file-system-id $efsid \
+--subnet-id  $sid \
+--security-group $groupid \
+--region $AWSRegion; \
+done
+
+```
+
 ### 2.5.2 Create Kubernetes resources
 
 **Storage Class**
@@ -151,11 +201,14 @@ replace the file.system.id with your id and the aws.region by your region.
 run the command:
 
 ```
+. ~/installsettings.sh
+
 # File System ID:
-fsid=fs-xxxxxx
+# get id from your AWS Console or used the variable that was set during EFS creation above.
+fsid=$efsid
 
 # Region:
-region=us-east-1
+region=$AWSRegion
 
 # Create Configmap
 kubectl create configmap efs-provisioner \

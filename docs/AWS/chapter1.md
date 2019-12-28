@@ -3,11 +3,11 @@
 ## 1.1 VPC and Security Groups
 
 Make sure you have a VPC with 2 or 3 subnets in a EKS Supported region.
-The subnets should be in one in each availability zone and have at least 64 free IP Addresses.
+The subnets should be in one in each availability zone and have at least 128 free IP Addresses.
 
 ## 1.2 IAM Roles and Policies
 
-Create an IAM Policy to allow your Bastion Host access to manage the required resources on your behalf.  
+Create an IAM Policy to allow your EKS Management Host access to manage the required resources on your behalf.  
 It is possible to restrict the Policy further but for the test, this will do:
 
 Create a new IAM Policy and name it "EKSFullAccess"
@@ -43,6 +43,36 @@ Create a new IAM Policy and name it "EKSFullAccess"
 }
 ```
 
+In case you want to manage your Route53 DNS zones from your EKS Management Host, create a new IAM Policy and name it "DNSAccess".
+
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "route53:ListHostedZones",
+                "route53:GetChange"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "route53:ChangeResourceRecordSets"
+            ],
+            "Resource": [
+                "arn:aws:route53:::hostedzone/<ID of public Route53 zone>",
+                "arn:aws:route53:::hostedzone/<ID of private Route53 zone>"
+            ]
+        }
+    ]
+}
+```
+
 Create a new IAM Role and name it "EKSManager".
 
 Assign this policies to your new IAM Role:
@@ -52,32 +82,33 @@ Assign this policies to your new IAM Role:
 * AmazonElasticFileSystemFullAccess
 * AmazonEKS_CNI_Policy
 * EKSFullAccess
+* DNSAccess  (optional)
 
 
-## 1.2 Create a Bastion Host in your VPC to administer your cluster
+## 1.2 Create an EKS Management Host in your VPC to administer your cluster
 
-To administer your EKS cluster easily, create a administrative host, called the Bastion Host.
+To administer your EKS cluster easily, create a administrative host, called the EKS Management Host.
 
-The bastion host will be a small Linux host to upload the docker images to the registry and administer the cluster.
-It is recommended that the host is in the same VPC as your kubernetes cluster. This will simplify the access to the cluster resources and the administration.
+The management host will be a small Linux host to upload the docker images to the registry and administer the cluster.
+It is recommended that the host is in the same VPC as your Kubernetes cluster. This will simplify the access to the cluster resources and the administration.
 
 The host can use a very small server e.g. t2.medium as no compute power is necessary.
 
 **AWS Console**
 
-Open the AWS Console and create the Bastion Host.
+Open the AWS Console and create the Management Host.
 You can use a small instance type like t3a.medium.
 Place the host into the the new VPC as you will use it for your Kubernetes Cluster.
 Attach the EKSManager Role you created in 1.1 to the instance.
 
-* Use CentOS or AWS Linux as OS for the Bastion Host. Other Linux systems should also be possible as long as you can install Docker CE onto them.
+* Use CentOS or AWS Linux as OS for the Management Host. Other Linux systems should also be possible as long as you can install Docker CE onto them.
 All provided scripts are created on CentOS or RHEL Server. They are not tested with other Linux distributions. 
-* Open port 22 (SSH) to access your Bastion Host from everywhere.
+* Open port 22 (SSH) to access your Management Host from everywhere.
 * Make sure a public IP is assigned. Either assign an Elastic IP afterwards or make sure "Auto-assign Public IP" is set to enable.
 * Make sure you assign 30GB of Hard Disk space to your new instance. You need this disk space to extract the Component Pack.
 
 
-## 1.3 Add the required software to your Bastion Host
+## 1.3 Add the required software to your Management Host
 
 Connect to your new host and install this software:
 
@@ -92,19 +123,19 @@ sudo yum -y install vim nano unzip bind-utils
 
 ### 1.3.2 Install AWS CLI
 
-Login to your new Bastion host using ssh and install the required tools:
+Login to your new managemnt host using ssh and install the required tools:
 
 ```
 # Install AWS CLI
 sudo yum -y install epel-release
-sudo yum -y install python34-pip python34
-sudo pip3.4 install --upgrade pip
-sudo pip3.4 install awscli --upgrade
+sudo yum -y install python-pip
+sudo pip install --upgrade pip
+sudo pip install awscli --upgrade
 
 # Check AWS CLI Version
 aws --version
 
-# Check AWS IAM Role that it contains the EKSManager role you created and assigned to your Bastion Host.
+# Check AWS IAM Role that it contains the EKSManager role you created and assigned to your Management Host.
 aws sts get-caller-identity
 ```
 
@@ -183,9 +214,9 @@ helm version --client
 Docker is only necessary to deploy the Docker images into the registry or to build your own Docker images.
 
 
-**Uses this instructions to install Docker according to IBM**
+**Uses this instructions to install Docker according to HCL**
 
-The instructions about the docker installation are taken from the [IBM Documentation](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereq_kubernetes_nonha.html).
+The instructions about the docker installation are taken from the [Deploying a non-HA Kubernetes platform](https://help.hcltechsw.com/connections/v65/admin/install/cp_prereq_kubernetes_nonha.html).
 
 For the installation run the script:
 
@@ -216,11 +247,11 @@ sudo usermod -a -G docker ec2-user
 
 To verify that docker is installed correctly run: `docker version`
 
-## 1.4 Schedule bastion host shutdown
+## 1.4 Schedule management host shutdown
 
 On Azure you can configure your server to shut down on a certain time each day. This is quite handy so save some mony.
 
-run this command as root to add the shutdown your bastion host a 7pm.
+run this command as root to add the shutdown your management host a 7pm.
 
 ```
 echo "0 19 * * * /usr/sbin/shutdown -h 10 'Power Off in 10 minutes'"| sudo crontab -
