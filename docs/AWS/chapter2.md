@@ -241,3 +241,5 @@ In case the container is not up and running after 2 minutes, check what went wro
 
 To restart the efs provisioner, delete the pod to get it recreated immediately. `kubectl delete pods -l app=efs-provisioner`
 
+
+**[Create your AWS environment << ](chapter1.html) [ >> Install your first application](chapter3.html)**

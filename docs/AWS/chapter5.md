@@ -409,3 +409,5 @@ See HCL Documentation for more commands on page [Troubleshooting Component Pack 
 
 Use the installed Kubernetes Dashboard to inspect your infrastructure. See [5.3.7.2 Installing the Kubernetes web-based dashboard](chapter5.html#5372-installing-the-kubernetes-web-based-dashboard)
 
+
+**[Configure your Network << ](chapter4.html) [ >> Configure Ingress](chapter6.html)**

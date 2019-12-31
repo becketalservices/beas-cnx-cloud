@@ -113,3 +113,4 @@ So far customizer is not yet active. All other services are up and running.
 
 Please stay tuned for an update of this documentation on how to enable customizer on this network configuration.
 
+**[Install Component Pack << ](chapter5.html)**

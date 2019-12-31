@@ -212,3 +212,4 @@ The error causes are the same as above.
 
 You can now use a browser to test the access.
 
+**[Install your first application << ](chapter3.html) [ >> Install Component Pack](chapter5.html)**

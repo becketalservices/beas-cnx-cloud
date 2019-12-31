@@ -257,3 +257,6 @@ run this command as root to add the shutdown your management host a 7pm.
 echo "0 19 * * * /usr/sbin/shutdown -h 10 'Power Off in 10 minutes'"| sudo crontab -
 
 ```
+
+
+**[ >> Create Kubernetes infrastructure on AWS](chapter2.html)**

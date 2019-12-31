@@ -65,3 +65,5 @@ http://<External-IP>:8080/filebrowser
 ```
 
 To remove the service run: `kubectl -n connections delete service fb-service`
+
+**[Create Kubernetes infrastructure on AWS << ](chapter2.html) [ >> Configure your Network](chapter4.html)**
