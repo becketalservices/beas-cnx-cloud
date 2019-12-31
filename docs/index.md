@@ -3,7 +3,7 @@ Create an HCL Component Pack installation on managed Kubernetes
 
 HCL has updated the HCL Connections Component Pack to work on a native Kubernetes installation without IBM Cloud private. This gives everyone the chance to deploy the solution on a managed Kubernetes infrastructure.
 
-HCL has documented the installation of IBM Connections Component Pack on a reference installation which will probably reside in a private data center.
+HCL has documented the installation of HCL Connections Component Pack on a reference installation which will probably reside in a private data center.
 
 As many companies are now using cloud services, using Kubernetes services out of the cloud should also be an option to host the HCL Connections Component Pack.
 

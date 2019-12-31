@@ -4,7 +4,7 @@ To check that everything runs smoothly, we will install a file browser which can
 
 ## 3.1 Crate the connections namespace
 
-All IBM Connections related services are deployed inside the namespace `connections` per default. See the IBM documentation in case you want to change this default.
+All HCL Connections related services are deployed inside the namespace `connections` per default. See the HCL documentation in case you want to change this default.
 
 To create the namespace run: `kubectl create namespace connections`
 
@@ -39,7 +39,7 @@ helm install https://github.com/becketalservices/cnx_cp_filebrowser/releases/dow
 ```
 
 To test the browser access, a load balancer service must be created.  
-Delete the service after testing. The normal IBM Component Pack will be reachable via an ingress controller that gets configured later.
+Delete the service after testing. The normal HCL Component Pack will be reachable via an ingress controller that gets configured later.
 
 ```
 kubectl -n connections expose deployment filebrowser \

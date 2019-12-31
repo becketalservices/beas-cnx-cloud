@@ -17,7 +17,6 @@ controller:
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "590"
 
 tcp:
-  "30001": connections/orient-web-client:8000
   "30099": connections/elasticsearch:9200
   "30379": connections/haproxy-redis:6379
 EOF1

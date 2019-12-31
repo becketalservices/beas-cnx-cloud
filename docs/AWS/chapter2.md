@@ -4,9 +4,11 @@ Choose an AWS region that suits your needs. See [Regions and Availability Zones]
 
 This chapter follows the documentation from AWS [Getting Started with Amazon EKS](https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html).
 
-## 2.1 Configure your environment
+## 2.1 Create environment configuration file
 
-As some variables like your VPCId is required more often, create a file with this variables.  
+As some variables like your EKS Name is required more often, create a file with these variables:  
+The file is called `installsettings.sh` and is placed in your home directory.  
+Most of the scripts and commands reference this file.
 
 
 ```
@@ -44,7 +46,7 @@ ic_admin_user="admin_user"
 ic_admin_password='admin_password'
 ic_internal="ic_internal"
 ic_front_door="ic_front_door"
-master_ip="ic_internal"
+master_ip="ic_front_door"
 # "elasticsearch customizer orientme"
 starter_stack_list=""
 # for test environments with just one node or no taint nodes, set to false.
@@ -100,7 +102,7 @@ kubectl get svc
 
 As we have rbac enabled on our cluster, we need to create an service account so that helm can act on our cluster.
 
-The given instructions are based on [Role-based Access Control](https://github.com/helm/helm/blob/master/docs/rbac.md).
+The given instructions are based on [Role-based Access Control](https://helm.sh/docs/topics/rbac/).
 
 To create the service account, allow helm to manage the whole cluster and configure helm to use it, run this commands:
 
@@ -117,12 +119,12 @@ To check your helm installation and your successful connection to the cluster ru
 
 ## 2.4 Taint and Label your Nodes
 
-AWS EKS does not support different node groups yet but you can separate the existing nodes as described by IBM.
+AWS EKS does not support different node groups yet but you can separate the existing nodes as described by HCL.
 
 I found this step not necessary. It makes your configuration more complicate. It is safe to skip this step in a test environment.  
 In case you skp this step, make sure that you set the node affinity to false when you deploy the component pack.
 
-Taint and label the infrastructure worker nodes as described in [Labeling and tainting worker nodes for Elasticsearch](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_prereqs_label_es_workers.html).
+Taint and label the infrastructure worker nodes as described in [Labeling and tainting worker nodes for Elasticsearch](https://help.hcltechsw.com/connections/v65/admin/install/cp_prereqs_label_es_workers.html).
 
 
 ## 2.5 Create a AWS EFS Storage and Storage Class
@@ -146,7 +148,8 @@ To use aws cli to create the EFS, use this commands:
 groupid=$(aws ec2 describe-security-groups \
   --region=$AWSRegion \
   --filter "Name=group-name,Values=eksctl-${EKSName}-cluster-ClusterSharedNodeSecurityGroup-*" \
-  --query "SecurityGroups[*].{Name:GroupId}")
+  --query "SecurityGroups[*].{Name:GroupId}" \
+  --output text)
 echo $groupid
 
 # Create EFS File System
@@ -154,23 +157,29 @@ aws efs create-file-system \
 --creation-token $EKSName \
 --performance-mode generalPurpose \
 --throughput-mode bursting \
---tags Key=Name,Value="$EKSName"
+--tags Key=Name,Value="$EKSName" \
 --region $AWSRegion
 
 # Get FSId
-efsid=$(aws efs describe-file-systems --creation-token $EKSName  --query "FileSystems[*].FileSystemId")
+efsid=$(aws efs describe-file-systems \
+  --creation-token $EKSName \
+  --query "FileSystems[*].FileSystemId" \
+  --region $AWSRegion \
+  --output text)
 echo $efsid
 
 # Create Mount Targets in every subnet
-for sid in $(echo $SUBNETID| tr ',' ' '); \
+for sid in $(echo $SUBNETID| tr ',' ' ')
 do aws efs create-mount-target \
 --file-system-id $efsid \
 --subnet-id  $sid \
 --security-group $groupid \
---region $AWSRegion; \
+--region $AWSRegion
 done
 
 ```
+
+**After EFS creation, wait 2 minutes until DNS is up to date.**
 
 ### 2.5.2 Create Kubernetes resources
 

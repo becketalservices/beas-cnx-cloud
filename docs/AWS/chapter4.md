@@ -6,6 +6,10 @@ When you want Customizer, you need to correct the network configuration at this 
 
 This chapter will line out the tasks to get the new Kubernetes infrastructure to forward the traffic to the existing installation. The final Customizer configuration will be done later when everything is running.
 
+This picture shows the target network setup. 
+
+![Connections Infrastructure Networking AWS](../images/HCL_Connections_Infratructure_Networking_AWS.png "Connections Infrastructure Networking AWS")
+
 ## 4.1 Change Service URL for your existing infrastructure
 
 Your existing infrastructure must have a different DNS name than the frontend ingress controller so that traffic can flow from the users through the ingress controller into your existing infrastructure. To avoid that the existing WebSphere servers start to communicate through the ingress controller what will produce a lot of unnecessary load, the DNS Names and service configurations must be adjusted.
@@ -18,7 +22,7 @@ Create a new DNS entry for your existing HTTP Server or front end load balancer.
 
 **This reconfiguration requires a full restart of the instance**
 
-The process is described by IBM on page [Configuring the NGINX proxy server for Customizer](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_config_customizer_setup_nginx.html).
+The process is described by HCL on page [Configuring the NGINX proxy server for Customizer](https://help.hcltechsw.com/connections/v65/admin/install/cp_config_customizer_setup_nginx.html).
 
 1. Get new SSL Certificates for your HTTP Server and in case for your Load Balancer where the Service Principal Name also includes the new DNS Name. The old name is only necessary until the new ingress controller is active. In case you do this during the same down time, the old name is not necessary in the SSL certificate.
 2. Update your HTTP Server and in case your load balancer to use the new SSL certificate. 
@@ -29,112 +33,77 @@ The process is described by IBM on page [Configuring the NGINX proxy server for 
 After the restart, your old infrastructure should behave normal. If not, you need to debug the configuration change and make sure the DNS entries point to the right systems.
 
 
-# 4.2 Installing an Ingress Controller
+# 4.2 Create configuration files
 
-The Customizer requires a reverse proxy in front of the whole infrastructure so that some specific HTTP URLs can be redirected to the Customizer for modification. IBM suggests to use a nginx server. As it is a common problem on kubernetes infrastructures to redirect HTTP(s) traffic to different backend services (internal servers and external endpoints) out of the box solutions exists that can be used.
+To simplify the resource creation, many settings can be placed into yaml files. Theses files will then be referenced by the various installation commands.  
+Currently 3 different configuration files can be created automatically.  
+
+1. global-ingress.yaml - Used by the creation of the global-ingress-controller
+2. install_cp.yaml - Used by the creations of the component pack helm charts
+3. boards-cp.yaml - Used by the creation of the activities plus helm chart
+
+To create these files make sure, your `installsettings.sh` file is up to date, then run:
+
+```
+# Write Config Files
+bash beas-cnx-cloud/common/scripts/write_cp_config.sh
+
+```
+
+
+# 4.3 Installing the Global Ingress Controller
+
+The Customizer requires a reverse proxy in front of the whole infrastructure so that some specific HTTP URLs can be redirected to the Customizer for modification. HCL suggests to use a nginx server. As it is a common problem on kubernetes infrastructures to redirect HTTP(s) traffic to different backend services (internal servers and external endpoints) out of the box solutions exists that can be used.
 
 This chapter uses the nginx-ingress controller from [nginx-ingress](https://kubernetes.github.io/ingress-nginx/).  
 Microsoft is has a documentation for their Azure AKS system on page [Create an HTTPS ingress controller on Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/ingress-tls). This instructions work for AWS EKS as well when you adapt the Microsoft specific commands. 
 
-There are different possibilities on how to connect to a Kubernetes cluster. Usually this is done via a load balancer. The load balancer can be set up automatically by Kubernetes or manually. The load balancer ip can be either internal or a public ip address. As Microsoft does not charge for internal load balancer and only one public ip is necessary, the helm hart below will configure a load balancer for the ingress controller.
+There are different possibilities on how to connect to a Kubernetes cluster. Usually this is done via a load balancer. The load balancer can be set up automatically by Kubernetes or manually. The load balancer ip can be either internal or a public ip address.
 
-To install the ingress controller run the helm chart:
+The infrastructure will contain 2 ingress controller. The global we are currently set up and the cnx-ingress-controller provided by HCL. All HCL and Kudos components assume that the cnx-ingress-controller is the default ingress controller. Therefore the new global-ingress-controller uses a different ingress-class called `global-nginx`. 
+
+To install the globa ingress controller make sure you created the global-ingress.yaml file, then run:
 
 ```
-# Number of replica. Should be less or equal to your nodes customizer nodes.
-replica=2
-
-# Run this helm chart to use a public facing load balancer and get a public IP.
-helm install stable/nginx-ingress \
-  --namespace connections \
-  --name connections \
-  --set controller.replicaCount=$replica
-
-
-# Run this helm chart to get a private facing load balanser and get a private IP.
-# This is done by annotate the service.
-# !!! Currently untested !!!
-helm install stable/nginx-ingress \
-  --namespace connections \
-  --set controller.replicaCount=$replica \
-  --set controller.service.annotations='{"service.beta.kubernetes.io/aws-load-balancer-internall": "0.0.0.0/0"}'
-
-# Run this helm chart to start the ingress controller but do not crate the load balancer. (adjust the used ports if necessary)
-helm install stable/nginx-ingress \
-  --namespace connections \
-  --name connections \
-  --set controller.replicaCount=$replica \
-  --set controller.service.type=NodePort \
-  --set controller.service.nodePorts.http=32080 \
-  --set controller.service.nodePorts.https=32443
-
+# Global Ingress Controller
+helm upgrade global-nginx stable/nginx-ingress -i -f ./global-ingress.yaml --namespace connections 
 
 ```
 
-**When using an internal elb, make sure the security groups are configured correctly to allow traffic forwarding**
+The helm chart automatically creates the internal load balancer, forwarding http, https, 30099 (Redis) and 30379 (Elasticsearch).  
 
-# 4.2 Configure the ingress controller
-
-The ingress controller uses a standard ngingx server.
-
-The standard nginx server allows only 1MB of HTTP body to be send to a proxy resource. As the maximum file size in Connections is 512MB or higher when customized, this limit must be adjusted accordingly.
-
-The ingress controller has a config map where all system wide settings are configured. To modify the maximum body size run:
+To allow your external users access this ingress controller via http / https, create an external facing loadbalancer by running:
 
 ```
-# Adjust the limit to your needs!
-limit=512m
-
-# create configmap
-kubectl -n connections create configmap connections-nginx-ingress-controller
-
-# patch configmap
-kubectl -n connections patch configmap connections-nginx-ingress-controller --patch "{\"data\": {\"proxy-body-size\":\"$limit\"}}"
+# Create External LB
+kctl apply -f beas-cnx-cloud/AWS/kubernetes/aws-external-lb.yaml
 
 ```
+
 
 # 4.4 Make sure your DNS resolution and service configuration is right
 
-## 4.4.1 DNS entry for external traffic
+The DNS resolution must be set correctly to allow users and services to access your ingress controller from everywhere. 
+Especially when using the automatic SSL Certificate generation configured in 4.5.1 Automatic SSL Certificate retrieval and renewal.
 
-This is traffic that comes from outside of your network. This users use the external facing load balancer that was created automatically in 4.1 Installing an Ingress Controller.  
-Make sure your public FQDN for your instance is pointing to the load balancer name as CNAME record in your public facing DNS.
-
-To configure the DNS entry for your LB via script run:
-
-```
-bash beas-cnx-cloud/AWS/scripts/setupDNS4Ingress.sh
-```
-
-## 4.4.2 DNS entry for internal traffic
-
-This traffic that comes from inside of your network. This are your backend servers, the component pack servers itself or internal users.   
-The Load Balancer for this traffic was probably created when you choose the private facing ingress controller.  
-
-In case you created a public facing ingress controller, you need to create the load balancer manually by issuing the command:  
-
-```
-kubectl apply -f beas-cnx-cloud/AWS/kubernetes/aws-intenal-lb.yaml
-
-```
-
-Make sure your public FQDN for your instance is pointing to the internal load balancer name as CNAME record in your private facing DNS.
+The script detects the currently running services by name, get the configured load balances and then creates Route53 CNAME entries in the appropriate Zones.  
 
 To configure the DNS entry for your LB via script run:
 
 ```
+# Create CNAME entries for your Load Balancers
 bash beas-cnx-cloud/AWS/scripts/setupDNS4Ingress.sh
-```
 
+```
 
 # 4.5 Get SSL Certificate
 
-To secure your traffic a ssl certificate is necessary. This certificate must be added to a kubernetes secret.
+To secure your traffic a SSL certificate is necessary. This certificate must be added to a kubernetes secret.
 
 ## 4.5.1 Automatic SSL Certificate retrieval and renewal
-When using the ingress controller together with the [cert-manager](https://github.com/jetstack/cert-manager) , the necessary ssl certificates can be retrieved automatically. This setup is currently described here as it is documented by Microsoft on the page [Install cert-manager](https://docs.microsoft.com/en-us/azure/aks/ingress-tls#install-cert-manager).
+When using the ingress controller together with the [cert-manager](https://cert-manager.io/) , the necessary ssl certificates can be retrieved automatically. This setup is currently described here as it is documented by Microsoft on the page [Install cert-manager](https://docs.microsoft.com/en-us/azure/aks/ingress-tls#install-cert-manager).
 
-** The SSL Certificate retrieval only works, when you are using a pulbic Load Balancer (The ingress controller is accessible via http (port 80) from the public internet and your productive DNS entry is already pointing to your load balancer. (see Topic 4.7) **
+** The SSL Certificate retrieval only works, when you are using a pulbic Load Balancer (The ingress controller is accessible via http (port 80) from the public internet and your productive DNS entry is already pointing to your load balancer. (see Topic 4.4) **
 
 Setup the certificate manager is simple when your ingress controller has a public IP.  
 I recommend trying out the configuration which is copied from Microsoft:
@@ -194,53 +163,31 @@ kubectl -n connections create secret tls tls-secret --key /tmp/tls.key --cert /t
 
 ```
 
-# 4.6 Configure your existing infrastructure as external service
+# 4.6 Configure filebrowser to use this new ingress controller
 
-External services exist to create a pointer to external systems. This creates a CNAME entry inside the Kubernetes DNS. 
+To test the certificate creation or your assigned certificates, the ingress controller must be configured to forward traffic. 
+The filebrowser created in chapter 3, can be used for this purpose. 
 
-Use the new backend DNS name as external name for this resource.
-
-Update your component pack configuration in your installsettings.sh:  
-
-```
-# Component Pack
-ic_admin_user=admin_user
-ic_admin_password=admin_password
-ic_internal="IC Classic FQDN"
-ic_front_door="IC FQDN for users"
-master_ip=
-# "elasticsearch customizer orientme"
-starter_stack_list="elasticsearch customizer orientme"
-# for test environments with just one node or no taint nodes, set to false.
-nodeAffinityRequired="[true/false]"
+Make sure the filebrowser pod is up and running. If not review chapter 3 Install your first application.
 
 ```
-To create the external service for your existing infrastructure run:
-
-```
-# Load settings
-. ~/installsettings.sh
-
-# Create external service cnx-backend
-kubectl -n connections create service externalname cnx-backend --external-name $ic_internal
+kubectl get pods -n connections -l app.kubernetes.io/name=filebrowser
 
 ```
 
-# 4.7 Create a ingress resource to forward the traffic
-
-The basic ingress resource will proxy all traffic from the public IP to the old infrastructure. The resources to forward some specific paths to Customizer will be added later.
+The ingress resource will proxy all traffic for /filebrowser from the public IP to the filebrowser service.
 
 To create the resource run:
 
 ```
-#Run script to create the cnx_ingress rule
-bash beas-cnx-cloud/Azure/scripts/cnx_ingress.sh
+#Run script to create the fb-gloabal-ingress rule
+bash beas-cnx-cloud/common/scripts/fb_global_ingress.sh
 
 ```
 
-# 4.8 Test your forwarding
+# 4.7 Test your forwarding
 
-To test your forwarding, you can use curl or wget. I do not recommend to use a browser as the forwarding is not fully functional yet and with a full browser it is not that easy to see the details.
+To test your forwarding, you can use curl or wget. I do not recommend to use a browser as the forwarding might not fully functional yet and with a full browser it is not that easy to see the details.
 
 **Test the access to your ingress loadbalancer by IP**
 
@@ -265,10 +212,3 @@ The error causes are the same as above.
 
 You can now use a browser to test the access.
 
-# 4.9 Point your DNS to the front door
-
-When your can access your old infrastructure through the reverse proxy, you can modify the DNS entry for your connections infrastructure to use the load balancer public IP.
-
-**Before doing so, make sure you have a valid SSL certificate configured in your ingress controller.**
-
-After this step, your new infrastructure is productive as all of your users now access your connections instance through the ingress controller.
