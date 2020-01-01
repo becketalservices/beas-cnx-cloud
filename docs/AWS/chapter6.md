@@ -28,7 +28,8 @@ ic_front_door="IC FQDN for users"
 master_ip=
 # "elasticsearch customizer orientme"
 starter_stack_list="elasticsearch customizer orientme"
-# for test environments with just one node or no taint nodes, set to false.
+# for test environments with just one node or no taint nodes, 
+# set to false.
 nodeAffinityRequired="[true/false]"
 
 ```
@@ -39,7 +40,8 @@ To create the external service for your existing infrastructure run:
 . ~/installsettings.sh
 
 # Create external service cnx-backend
-kubectl -n connections create service externalname cnx-backend --external-name $ic_internal
+kubectl -n connections create service externalname cnx-backend \
+  --external-name $ic_internal
 
 ```
 
@@ -85,7 +87,7 @@ redispwd=$(kubectl get secret redis-secret -n connections \
   -o "jsonpath={.data.secret}" | base64 -d)
 
 # run command
-bash configureRedis.sh \
+bash microservices_connections/hybridcloud/support/redis/configureRedis.sh \
   -m  $master_ip\
   -po 30379 \
   -ic https://$ic_internal \
@@ -105,6 +107,27 @@ To check if redis is working as expected use [Verifying Redis server traffic](ht
 
 Use this documentation [Configuring the Elasticsearch Metrics component](https://help.hcltechsw.com/connections/v65/admin/install/cp_config_es_intro.html) to configure the backend infrastructure to use the Elastic Search component. 
 Use the internal load balancer hostname (ic_front_door) as pink host.
+
+To retrieve the key and password, you can use this commands.
+
+```
+## Get Key Password:
+# Get ES Key Password from secret elasticsearch-secret
+echo $(kubectl get secret elasticsearch-secret -n connections \
+  -o 'jsonpath={.data.elasticsearch-key-password\.txt}' | base64 -d)
+
+  
+## Get Key in .p12 format. Copy the output of the last command to 
+## the backend instance and execute it. It will create the
+## P12 key store in the current directory.
+# Get ES Key from secret elasticsearch-secret
+p12key=$(kubectl get secret elasticsearch-secret -n connections \
+  -o 'jsonpath={.data.elasticsearch-metrics\.p12}')
+echo
+echo "echo $p12key | base64 -d > lasticsearch-metrics.p12"
+
+```
+
 
 
 ## 6.4 Configure Customizer

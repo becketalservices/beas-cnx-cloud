@@ -313,6 +313,10 @@ Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 
 
 The commands use the configuration file boards-cp.yaml created in [4.2 Create configuration files](chapter4.html#42-create-configuration-files).
 
+**Attention: Register kudosboards as OAuth Client first and update the client secret in the boards-cp.yaml {user.env.CONNECTIONS_CLIENT_SECRET}**  
+[Registering an OAuth application with a provider](https://help.hcltechsw.com/connections/v65/admin/install/cp_3p_config_ap_oauth.html)
+
+
 ```
 # Run all commands in 1 go. The PVC must be recreated before the mini-io pod is running.
 
