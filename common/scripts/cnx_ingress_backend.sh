@@ -15,7 +15,7 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
 spec:
   rules:
-  - host: *.$GlobalDomainName
+  - host: "*.$GlobalDomainName"
     http:
       paths:
       - path: /
