@@ -57,7 +57,7 @@ bash beas-cnx-cloud/common/scripts/cnx_ingress_backend.sh
 
 ```
 
-### 6.2.2 Create a ingress resource to forward all traffic from the global to the cnx ingress controller
+### 6.2.2 Create an ingress resource to forward all traffic from the global to the cnx ingress controller
 
 To create the resource run:
 
@@ -69,6 +69,26 @@ bash beas-cnx-cloud/common/scripts/global_ingress.sh
 
 In case everything is configured correctly, the backend infrastructure should not be accessible by using your front door DNS Name.  
 OrientMe, AppReg and Borads should also accessible as this services are forwarded per default in the cnx-ingress-controller. 
+
+### 6.2.3 Crate an ingress resource to froward all push traffic directly to the backend
+
+HCL has implemented push notifications by using long polling request. Depending on the used client, the duration of this requests is between 100sec and 550sec.
+
+HCL documents multiple possibilities to handle this traffic on the backend infrastructure. The assumption is, that these configurations are already in place. 
+see: 
+1. [Configuring an NGINX server for long polling](https://help.hcltechsw.com/connections/v65/admin/install/inst_post_nginx.html)
+2. [Setting up and configuring a WAS proxy server for long poll testing](https://help.hcltechsw.com/connections/v65/admin/secure/t_admin_config_was_proxy.html)
+
+As the ingress controller on kuberentes is already an nginx server, the best option would be to configure it using option 1. Unfortunately I found no configuration option to do so.
+Therefore the command just forwards the /push traffic to the backend infrastructure. Maybe there are better options available. In case you know one, please inform me about this.
+
+The created loadbalancer are also configured to support this long running requests by adding the annotation `service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "590"`.
+
+```
+# Separate /puth traffic to the backend service
+bash beas-cnx-cloud/common/scripts/push_global_ingress.sh
+
+```
 
 
 ## 6.2 Configure Redis Traffic
@@ -132,8 +152,84 @@ echo "echo $p12key | base64 -d > lasticsearch-metrics.p12"
 
 ## 6.4 Configure Customizer
 
-So far customizer is not yet active. All other services are up and running.
+Here, my configuration differs from the one of HCL. HCL use the first ingress controller to separate traffic between standard an customizer traffic. This traffic is then send either directly to the backend or via the mw-proxy pod. In the HTTP Server of the backend, the traffic is then separated again between classic connections traffic and kubernetes traffic by using proxy rules. The kubernetes traffic is then send back to the kubernetes infrastructure into the cnx-ingress controller for further processing.   
 
-Please stay tuned for an update of this documentation on how to enable customizer on this network configuration.
+In my network setup, the traffic is not forwarded to the external HTTP Server, it is directly send to the internal services mw-proxy or cnx-ingress-contrller. 
+
+**Advantages**
+- No proxy configuration on existing HTTP Server
+- No load balancer for the cnx-ingress-controller necessary.
+
+**Disadvantage**
+- The mw-proxy pod needs to be customized to support http as protocol to the cnx-ingress-controller service
+- All classic network traffic is routed through 2 ingress controller before reaching the HTTP Server.
+
+To support this scenario, the mw-proxy must be patched to support http traffic as upstream protocol to forward the traffic not to the https enabled backend HTTP Server but to the internal cnx-ingress-controller only supporting http.
+
+### 6.4.1 Path mw-proxy image to support http traffic
+
+HCL has not enabled to configure the protocol to be used for the backend service.
+
+To patch the mp-proy image, you need docker installed on your management host.
+[How to edit files within docker containers](https://ligerlearn.com/how-to-edit-files-within-docker-containers/)
+
+1. Login to ECR: `$(aws ecr get-login --no-include-email --region ${AWSRegion})`
+2. start docker image: `docker run -d $ECRRegistry/connections/mw-proxy:20191122-024351`
+3. get docker image id: `docker ps`
+4. run sh inside docker container: `docker exec -it 3b190703d0ee /bin/sh`
+5. patch configuration: `sed -i "s/protocol: 'https'/protocol: 'http'/" src/server/config.production.js`
+6. Exit shell: `exit`
+7. Stop Container: `docker stop 3b190703d0ee`
+8. Create docker image: `docker commit eloquent_turing`
+9. List docker images: `docker images`
+9. Tag image (append 'c' at the end.): `docker tag 871156452f95 $ECRRegistry/connections/mw-proxy:20191122-024351c`
+10. Upload new image to registry: `docker push $ECRRegistry/connections/mw-proxy:20191122-024351c`
+
+
+
+### 6.4.2 Update configmap connections-env to redirect traffic to cnx-ingress-controller
+
+During the creation of the connections-env configmap, the 2 parameters customizer-interservice-host and customizer-interservice-port are set to the hostname and port of you backend http server. This needs to be changed to the cnx-ingress-controller.
+
+```
+kubectl patch configmap connections-env \
+  -n connections \
+  --type merge \
+  -p '{"data":{"customizer-interservice-host":"cnx-ingress-controller","customizer-interservice-port":"80"}}'
+  
+```
+
+### 6.4.3 Update mw-proxy deployment to use patched image
+
+To use the updated image from 6.4.1, the deployment descriptor must be changed.
+
+```
+# get current image name
+currentimage=$(kubectl get deployment mw-proxy \
+  -n connections \
+  -o 'jsonpath={.spec.template.spec.containers[0].image}')
+
+#modify image tag by adding a 'c' at the end. (depends on the tag of 6.4.1) 
+newimage=${currentimage}c
+
+# patch deployment to use new image
+kubectl patch deployment mw-proxy \
+  -n connections \
+  --type json \
+  -p "[{\"op\" : \"replace\" ,\"path\" : \"/spec/template/spec/containers/0/image\" , \"value\" : \"$newimage\"}]"
+
+```
+
+### 6.4.4 Activate customizer rules
+
+To forward traffic to the customizer, activate the forward rules as lined out by HCL [Configuring the NGINX proxy server for Customizer](https://help.hcltechsw.com/connections/v65/admin/install/cp_config_customizer_setup_nginx.html).
+
+To acitvate the configuration run command:
+
+```
+# Activate ingress for customizer on global-ingress
+bash beas-cnx-cloud/common/scripts/customizer_ingress_frontend.sh
+
+```
 
 **[Install Component Pack << ](chapter5.html)**

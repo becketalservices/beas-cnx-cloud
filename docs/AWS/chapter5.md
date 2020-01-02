@@ -298,8 +298,8 @@ Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 
 
 ```
 ## Customizer (mw-proxy)
-helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/mw-proxy*)
-helm upgrade mw-proxy $helmchart -i -f ./install_cp.yaml --namespace connections
+	helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/mw-proxy*)
+	helm upgrade mw-proxy $helmchart -i -f ./install_cp.yaml --namespace connections
 
 ```
 
