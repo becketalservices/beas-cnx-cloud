@@ -173,18 +173,41 @@ HCL has not enabled to configure the protocol to be used for the backend service
 To patch the mp-proy image, you need docker installed on your management host.
 [How to edit files within docker containers](https://ligerlearn.com/how-to-edit-files-within-docker-containers/)
 
-1. Login to ECR: `$(aws ecr get-login --no-include-email --region ${AWSRegion})`
-2. start docker image: `docker run -d $ECRRegistry/connections/mw-proxy:20191122-024351`
-3. get docker image id: `docker ps`
-4. run sh inside docker container: `docker exec -it 3b190703d0ee /bin/sh`
-5. patch configuration: `sed -i "s/protocol: 'https'/protocol: 'http'/" src/server/config.production.js`
-6. Exit shell: `exit`
-7. Stop Container: `docker stop 3b190703d0ee`
-8. Create docker image: `docker commit eloquent_turing`
-9. List docker images: `docker images`
-9. Tag image (append 'c' at the end.): `docker tag 871156452f95 $ECRRegistry/connections/mw-proxy:20191122-024351c`
-10. Upload new image to registry: `docker push $ECRRegistry/connections/mw-proxy:20191122-024351c`
 
+```
+# Load our environment settings
+. ~/installsettings.sh
+
+# Set version specific TAG
+# 6500: 20191122-024351
+TAG="20191122-024351"
+
+# Authorizes docker with ECR
+$(aws ecr get-login --no-include-email --region ${AWSRegion})
+
+# Patch Image
+docker run --name mw-patch \
+  ${ECRRegistry}/connections/mw-proxy:${TAG} \
+  sed -i "s/protocol: 'https'/protocol: 'http'/" src/server/config.production.js
+
+# Commit Image (append c to tag)
+docker commit mw-patch ${ECRRegistry}/connections/mw-proxy:${TAG}c
+
+# Check patch. 
+docker run --name mw-test \
+  ${ECRRegistry}/connections/mw-proxy:${TAG}c \
+  cat src/server/config.production.js | grep protocol
+
+# if "protocol: http" -> push to registry
+docker push ${ECRRegistry}/connections/mw-proxy:${TAG}c
+
+# Clean up
+docker rm mw-patch
+docker rm mw-test
+docker rmi ${ECRRegistry}/connections/mw-proxy:${TAG}
+docker rmi ${ECRRegistry}/connections/mw-proxy:${TAG}c
+
+```
 
 
 ### 6.4.2 Update configmap connections-env to redirect traffic to cnx-ingress-controller
