@@ -31,7 +31,7 @@ The documentation for this tool can be found here: <https://github.com/becketals
 To install the tool run: 
 
 ```
-helm install https://github.com/becketalservices/cnx_cp_filebrowser/releases/download/v1.0.0/filebrowser-1.0.0.tgz \
+helm install https://github.com/becketalservices/cnx_cp_filebrowser/releases/download/v2.0.0/filebrowser-2.0.0.tgz \
   --name filebrowser \
   --set storageClassName=aws-efs \
   --namespace connections
