@@ -79,7 +79,7 @@ see:
 1. [Configuring an NGINX server for long polling](https://help.hcltechsw.com/connections/v65/admin/install/inst_post_nginx.html)
 2. [Setting up and configuring a WAS proxy server for long poll testing](https://help.hcltechsw.com/connections/v65/admin/secure/t_admin_config_was_proxy.html)
 
-As the ingress controller on kuberentes is already an nginx server, the best option would be to configure it using option 1. Unfortunately I found no configuration option to do so.
+As the ingress controller on kubernetes is already an nginx server, the best option would be to configure it using option 1. Unfortunately I found no configuration option to do so.
 Therefore the command just forwards the /push traffic to the backend infrastructure. Maybe there are better options available. In case you know one, please inform me about this.
 
 The created loadbalancer are also configured to support this long running requests by adding the annotation `service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "590"`.
@@ -93,7 +93,7 @@ bash beas-cnx-cloud/common/scripts/push_global_ingress.sh
 
 ## 6.2 Configure Redis Traffic
 
-You need to configre your existing backend infratructure to forward redis traffic to your component pack cluster. 
+You need to configure your existing backend infratructure to forward redis traffic to your component pack cluster. 
 The global-ingress-controller is already configured to accept and forward this traffic.
 
 Follow the instructions to [Manually configuring Redis traffic to Orient Me](https://help.hcltechsw.com/connections/v65/admin/install/cp_config_om_redis_enable.html).  
@@ -152,7 +152,7 @@ echo "echo $p12key | base64 -d > lasticsearch-metrics.p12"
 
 ## 6.4 Configure Customizer
 
-Here, my configuration differs from the one of HCL. HCL use the first ingress controller to separate traffic between standard an customizer traffic. This traffic is then send either directly to the backend or via the mw-proxy pod. In the HTTP Server of the backend, the traffic is then separated again between classic connections traffic and kubernetes traffic by using proxy rules. The kubernetes traffic is then send back to the kubernetes infrastructure into the cnx-ingress controller for further processing.   
+Here, my configuration differs from the one of HCL. HCL use the first ingress controller to separate traffic between standard and customizer traffic. This traffic is then send either directly to the backend or via the mw-proxy pod. In the HTTP Server of the backend, the traffic is then separated again between classic connections traffic and kubernetes traffic by using proxy rules. The kubernetes traffic is then send back to the kubernetes infrastructure into the cnx-ingress controller for further processing.   
 
 In my network setup, the traffic is not forwarded to the external HTTP Server, it is directly send to the internal services mw-proxy or cnx-ingress-contrller. 
 
@@ -170,7 +170,7 @@ To support this scenario, the mw-proxy must be patched to support http traffic a
 
 HCL has not enabled to configure the protocol to be used for the backend service.
 
-To patch the mp-proy image, you need docker installed on your management host.
+To patch the mw-proxy image, you need docker installed on your management host.
 [How to edit files within docker containers](https://ligerlearn.com/how-to-edit-files-within-docker-containers/)
 
 
@@ -247,7 +247,7 @@ kubectl patch deployment mw-proxy \
 
 To forward traffic to the customizer, activate the forward rules as lined out by HCL [Configuring the NGINX proxy server for Customizer](https://help.hcltechsw.com/connections/v65/admin/install/cp_config_customizer_setup_nginx.html).
 
-To acitvate the configuration run command:
+To activate the configuration run command:
 
 ```
 # Activate ingress for customizer on global-ingress
