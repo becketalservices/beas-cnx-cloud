@@ -70,7 +70,7 @@ bash beas-cnx-cloud/common/scripts/global_ingress.sh
 In case everything is configured correctly, the backend infrastructure should not be accessible by using your front door DNS Name.  
 OrientMe, AppReg and Borads should also accessible as this services are forwarded per default in the cnx-ingress-controller. 
 
-### 6.2.3 Crate an ingress resource to froward all push traffic directly to the backend
+### 6.2.3 Create an ingress resource to forward all push traffic directly to the backend
 
 HCL has implemented push notifications by using long polling request. Depending on the used client, the duration of this requests is between 100sec and 550sec.
 
