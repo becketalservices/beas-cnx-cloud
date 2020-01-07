@@ -13,7 +13,7 @@ IBM provides a script to upload all necessary images to your registry. Unfortuna
 Assuming that your account you are working with AWS Cli, has the rights to upload images to the registry, and the account you set up as pull secret has not, you can modify the script to ignore the username and password and just upload the images using your implicit credentials.
 
 
-** Attension: AWS does not create the repositories for the images automatically. You need to create them first before docker can upload images. **
+** Attention: AWS does not create the repositories for the images automatically. You need to create them first before docker can upload images. **
 
 The IBM instructions are found on page [Pushing Docker images to the Docker registry](https://www.ibm.com/support/knowledgecenter/en/SSYGQH_6.0.0/admin/install/cp_install_push_docker_images.html).
 
