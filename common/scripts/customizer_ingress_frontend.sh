@@ -24,7 +24,7 @@ spec:
         backend:
           serviceName: mw-proxy 
           servicePort: 80
-      - path: /homepage/web|/social|/mycontacts|/wikis/home|/dogear/html|/metrics|/moderation/app
+      - path: /homepage/web|/social/|/mycontacts|/wikis/home|/dogear/html|/metrics|/moderation/app
         backend:
           serviceName: mw-proxy 
           servicePort: 80

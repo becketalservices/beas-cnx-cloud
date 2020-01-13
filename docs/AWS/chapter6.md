@@ -57,7 +57,7 @@ bash beas-cnx-cloud/common/scripts/cnx_ingress_backend.sh
 
 ```
 
-### 6.2.2 Create an ingress resource to forward all traffic from the global to the cnx ingress controller
+### 6.1.2 Create an ingress resource to forward all traffic from the global to the cnx ingress controller
 
 To create the resource run:
 
@@ -70,7 +70,7 @@ bash beas-cnx-cloud/common/scripts/global_ingress.sh
 In case everything is configured correctly, the backend infrastructure should not be accessible by using your front door DNS Name.  
 OrientMe, AppReg and Borads should also accessible as this services are forwarded per default in the cnx-ingress-controller. 
 
-### 6.2.3 Create an ingress resource to forward all push traffic directly to the backend
+### 6.1.3 Create an ingress resource to forward all push traffic directly to the backend
 
 HCL has implemented push notifications by using long polling request. Depending on the used client, the duration of this requests is between 100sec and 550sec.
 
@@ -87,6 +87,19 @@ The created loadbalancer are also configured to support this long running reques
 ```
 # Separate /puth traffic to the backend service
 bash beas-cnx-cloud/common/scripts/push_global_ingress.sh
+
+```
+
+### 6.1.4 Create an ingress resource to forward socialsidebar traffic directry to backend
+
+HCL has added the new feature **socialsidebar**. This functionallity enables a company-managed website to show a Connections Sidebar.  
+You can find more details in the documentation [Integrating Connections Sidebar with a website](https://help.hcltechsw.com/connections/v65/admin/install/t_install_config_sidebar_for_website.html).
+
+Currently the url for the sidebar */socialsidebar* conflicts with the orient-me url */social*. So it is important to route the social side bar traffic directly to the backend.
+
+```
+# Separate /socialsidebar traffic to the backend service
+bash beas-cnx-cloud/common/scripts/sidebar_global_ingress.sh
 
 ```
 
