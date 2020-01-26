@@ -1,4 +1,6 @@
 #!/bin/bash
+#version=202001261118
+
 . ~/installsettings.sh
 
 # Write global ingress controller configuration
@@ -20,6 +22,15 @@ tcp:
   "30099": connections/elasticsearch:9200
   "30379": connections/haproxy-redis:6379
 EOF1
+if [ "$useStandaloneES" == "1" ]; then
+  # use standalone ES Server
+  ESHost=$standaloneESHost
+  ESPort=$standaloneESPort
+else
+  # use integrated ES Server - values default from values.yaml in orientme helmchart
+  ESHost=elasticsearch
+  ESPort=9200
+fi
 
 # Write Component Pack configuration
 cat << EOF2 > install_cp.yaml
@@ -84,6 +95,21 @@ appregistry-service:
 orient-web-client:
   service:
     nodePort: 30001
+
+orient-indexing-service:
+  indexing:
+    solr: false
+    elasticsearch: true
+  elasticsearch:
+    host: $ESHost
+    port: $ESPort
+
+orient-retrieval-service:
+  retrieval:
+    elasticsearch: true
+  elasticsearch:
+    host: $ESHost
+    port: $ESPort
 
 itm-services:
   service:

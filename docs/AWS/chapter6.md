@@ -157,7 +157,7 @@ echo $(kubectl get secret elasticsearch-secret -n connections \
 p12key=$(kubectl get secret elasticsearch-secret -n connections \
   -o 'jsonpath={.data.elasticsearch-metrics\.p12}')
 echo
-echo "echo $p12key | base64 -d > lasticsearch-metrics.p12"
+echo "echo $p12key | base64 -d > elasticsearch-metrics.p12"
 
 ```
 
