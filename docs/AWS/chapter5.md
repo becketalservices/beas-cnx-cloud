@@ -240,6 +240,8 @@ Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 
 
 **Only relevant for orientme**
 
+** The configuration file created in [4.2 Create configuration files](chapter4.html#42-create-configuration-files) `install_cp.yaml` configures Orient Me to use the Elastic Search Cluster for indexing. Therefore the zookeeper and solr services are not necessary and can be shut down. **
+ 
 When you do not use ISAM:
 
 ```
@@ -252,6 +254,13 @@ helm upgrade orientme $helmchart -i -f ./install_cp.yaml --namespace connections
 Watch the container creation by issuing the command: `watch -n 10 kubectl -n connections get pods`  
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes up to 10 minutes to complete.
 
+To shut down the solr and zookeeper services to save resources run:
+
+```
+kubectl -n connections scale statefulset solr --replicas=0  
+kubectl -n connections scale statefulset zookeeper --replicas=0  
+
+```
 
 ### 5.3.5 Installing the Installing Ingress Controller
 
