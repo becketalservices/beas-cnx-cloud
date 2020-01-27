@@ -184,8 +184,7 @@ To support this scenario, the mw-proxy must be patched to support http traffic a
 HCL has not enabled to configure the protocol to be used for the backend service.
 
 To patch the mw-proxy image, you need docker installed on your management host.
-[How to edit files within docker containers](https://ligerlearn.com/how-to-edit-files-within-docker-containers/)
-
+We use a Dockerfile to customize the image.
 
 ```
 # Load our environment settings
@@ -198,13 +197,21 @@ TAG="20191122-024351"
 # Authorizes docker with ECR
 $(aws ecr get-login --no-include-email --region ${AWSRegion})
 
-# Patch Image
-docker run --name mw-patch \
-  ${ECRRegistry}/connections/mw-proxy:${TAG} \
-  sed -i "s/protocol: 'https'/protocol: 'http'/" src/server/config.production.js
+# Create modification directory and Docker File
+mkdir mw-proxy-mod
+cd mw-proxy-mod
+echo from ${ECRRegistry}/connections/mw-proxy:${TAG} > Dockerfile
+echo COPY config.production.js /usr/src/app/src/server/config.production.js >> Dockerfile
 
-# Commit Image (append c to tag)
-docker commit mw-patch ${ECRRegistry}/connections/mw-proxy:${TAG}c
+# Copy the original file from one running pod:
+podname=$(kubectl -n connections get pods --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | grep mw-proxy | head -n 1)
+kubectl -n connections cp $podname:/usr/src/app/src/server/config.production.js config.production.js
+
+# Patch File
+sed -i "s/protocol: 'https'/protocol: 'http'/" config.production.js
+
+# Build new image
+docker build . -t ${ECRRegistry}/connections/mw-proxy:${TAG}c
 
 # Check patch. 
 docker run --name mw-test \
@@ -215,7 +222,6 @@ docker run --name mw-test \
 docker push ${ECRRegistry}/connections/mw-proxy:${TAG}c
 
 # Clean up
-docker rm mw-patch
 docker rm mw-test
 docker rmi ${ECRRegistry}/connections/mw-proxy:${TAG}
 docker rmi ${ECRRegistry}/connections/mw-proxy:${TAG}c

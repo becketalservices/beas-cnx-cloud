@@ -16,6 +16,19 @@ kubectl -n connections scale deployment webfilesys --replicas=0
 kubectl -n connections scale deployment filebrowser --replicas=0  
 ```
 
+## Stop Activities Plus
+
+```
+kubectl -n connections scale deployment kudos-boards-cp-webfront --replicas=0  
+kubectl -n connections scale deployment kudos-boards-cp-app --replicas=0  
+kubectl -n connections scale deployment kudos-boards-cp-core --replicas=0  
+kubectl -n connections scale deployment kudos-boards-cp-notification --replicas=0  
+kubectl -n connections scale deployment kudos-boards-cp-user --replicas=0  
+kubectl -n connections scale deployment kudos-boards-cp-provider --replicas=0  
+kubectl -n connections scale deployment kudos-boards-cp-licence --replicas=0  
+kubectl -n connections scale deployment kudos-boards-minio --replicas=0  
+```
+
 ## Stop MW-Proxy
 
 ```
@@ -137,6 +150,20 @@ kubectl -n connections scale deployment orient-web-client --replicas=3
 ```
 kubectl -n connections scale deployment mw-proxy --replicas=3  
 ```
+
+## Start Activities Plus
+
+```
+kubectl -n connections scale deployment kudos-boards-minio --replicas=1  
+kubectl -n connections scale deployment kudos-boards-cp-licence --replicas=3  
+kubectl -n connections scale deployment kudos-boards-cp-provider --replicas=3  
+kubectl -n connections scale deployment kudos-boards-cp-user --replicas=3  
+kubectl -n connections scale deployment kudos-boards-cp-notification --replicas=3  
+kubectl -n connections scale deployment kudos-boards-cp-core --replicas=3  
+kubectl -n connections scale deployment kudos-boards-cp-app --replicas=3  
+kubectl -n connections scale deployment kudos-boards-cp-webfront --replicas=3  
+```
+
 
 ## Start Custom
 
