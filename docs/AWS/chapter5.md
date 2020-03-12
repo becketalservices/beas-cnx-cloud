@@ -234,6 +234,25 @@ helm upgrade infrastructure $helmchart -i -f ./install_cp.yaml --namespace conne
 Watch the container creation by issuing the command: `watch -n 10 kubectl -n connections get pods`  
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 2-3 minutes to complete.
 
+To check that redis cluster is working as expected, run:
+
+```
+kubectl exec -it redis-server-0 -n connections -- bash /usr/bin/runRedisTools.sh --getAllRoles
+
+```
+
+The exected output shows that one server is the master, the others are slave:
+
+```
+PodName : Role
+--------------
+redis-server-0.redis-server.connections.svc.cluster.local: master
+redis-server-1.redis-server.connections.svc.cluster.local: slave
+redis-server-2.redis-server.connections.svc.cluster.local: slave
+
+```
+
+
 ### 5.3.4 Installing Orient Me
 
 [Installing Orient Me](https://help.hcltechsw.com/connections/v65/admin/install/cp_install_om.html)
@@ -314,6 +333,18 @@ Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 
 
 Check if all pods are running: `watch -n 10 'kubectl -n connections get pods | grep "^mw-"'`
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 1 minute to complete.
+
+#### Add Customizer files to persistent storage
+
+HCL delivers 3 files which should be copied onto your customizer persistent storage. 
+To do so, run:
+
+```
+for file in microservices_connections/hybridcloud/support/customizer/*; do
+  kubectl cp -n connections $file $(kubectl get pods -n connections | grep mw-proxy | awk 'NR==1{print $1}'):/mnt;
+done
+
+```
 
 
 ### 5.3.8 Installing Activities Plus services
@@ -422,5 +453,31 @@ See HCL Documentation for more commands on page [Troubleshooting Component Pack 
 
 Use the installed Kubernetes Dashboard to inspect your infrastructure. See [5.3.7.2 Installing the Kubernetes web-based dashboard](chapter5.html#5372-installing-the-kubernetes-web-based-dashboard)
 
+
+## 5.5 Populating the Orient Me home page
+
+The full procedure and more configuration options can be found in [Populating the Orient Me home page](https://help.hcltechsw.com/connections/v65/admin/install/cp_config_om_populate_home_page.html) 
+
+### 5.5.1 Show your migration configuraton
+
+To view your migration configuration run:
+
+```
+kubectl exec -n connections -it $(kubectl get pods -n connections | grep people-migrate | awk '{print $1}') cat /usr/src/app/migrationConfig
+
+```
+
+In case something is wrong, check out the [HCL documentation](https://help.hcltechsw.com/connections/v65/admin/install/cp_config_om_prepare_migrate_profiles.html) on how to modify the configuration.
+
+### 5.5.2 Run migration command
+
+In case of a larger infrastructure check out the documentation [Migrating the data for the Orient Me home page](https://help.hcltechsw.com/connections/v65/admin/install/cp_config_om_migrate_profiles.html).
+
+For smaller instances where you can do a full migration with just one command run:
+
+```
+kubectl exec -n connections -it $(kubectl get pods -n connections | grep people-migrate | awk '{print $1}') npm run start migrate
+
+```
 
 **[Configure your Network << ](chapter4.html) [ >> Configure Ingress](chapter6.html)**
