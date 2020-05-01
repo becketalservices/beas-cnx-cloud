@@ -76,7 +76,6 @@ For all options and probably adoptions in your environment see the `eksctl help`
 # Run eksctl
 eksctl create cluster \
 --name "$EKSName" \
---version 1.12 \
 --nodegroup-name standard-workers \
 --node-type $EKSNodeType \
 --nodes $EKSNodeCount \
