@@ -1,5 +1,5 @@
 #!/bin/bash
-#version=202001261118
+#version=202005071236
 
 . ~/installsettings.sh
 
@@ -129,13 +129,30 @@ deploymentType: hybrid_cloud
 EOF2
 
 # Wirite Kudos Boards configuration
+if [ $installversion == "65" ]; then
+  if [ $installsubversion == "00" ]; then
+    valid=1
+    tag=20191120-214007
+  fi
+  if [ $installsubversion == "10" ]; then
+    valid=1
+    tag=20200306-180701
+  fi
+fi
+
+if [ "$valid" != "1" ]; then
+  echo "Not supported CP Version for Boards."
+  exit 1
+fi
+
 cat << EOF3 > boards-cp.yaml
 # Please read every variable and replace with appropriate value
 # For details of variable meanings, please see https://docs.kudosapps.com/boards/cp/
 
 global:
   repository: ${ECRRegistry}/connections 
-  imageTag: "20191120-214007"
+  imageTag: "$tag"
+  imagePullSecret: myregkey
   env:
     APP_URI: https://${ic_front_door}/boards
 

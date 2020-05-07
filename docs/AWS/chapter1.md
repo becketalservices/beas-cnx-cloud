@@ -20,8 +20,12 @@ Create a new IAM Policy and name it "EKSFullAccess"
             "Sid": "VisualEditor0",
             "Effect": "Allow",
             "Action": [
+                "iam:TagRole",
+                "iam:TagUser",
                 "iam:GetRole",
                 "iam:PassRole",
+                "iam:UntagRole",
+                "iam:UntagUser",
                 "iam:CreateRole",
                 "iam:DeleteRole",
                 "iam:GetRolePolicy",
@@ -33,6 +37,7 @@ Create a new IAM Policy and name it "EKSFullAccess"
                 "iam:CreateInstanceProfile",
                 "iam:DeleteInstanceProfile",
                 "iam:AddRoleToInstanceProfile",
+                "iam:GetOpenIDConnectProvider",
                 "iam:RemoveRoleFromInstanceProfile",
                 "cloudformation:*",
                 "eks:*"
@@ -199,9 +204,12 @@ sudo mv aws-iam-authenticator /usr/bin/
 Download and extract the helm binaries:
 
 ```
-curl -L -o helm-v2.11.0-linux-amd64.tar.gz \
-  "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-amd64.tar.gz"
-tar -zxvf helm-v2.11.0-linux-amd64.tar.gz
+# CP 6.0 - 6.5
+curl -L -O "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-amd64.tar.gz"
+
+# CP 6.5.0.1 - use latest availave v2 release
+curl -L -O "https://get.helm.sh/helm-v2.16.6-linux-amd64.tar.gz"
+tar -zxvf helm*
 sudo mv $HOME/linux-amd64/helm /usr/bin/helm
 
 # check that helm is available

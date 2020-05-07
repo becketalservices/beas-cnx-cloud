@@ -4,12 +4,12 @@ We need the installation files from IBM to continue.
 
 Download the files to your Bastion host and extract them. In case you have your files on a Azure file share or AWS S3, you can use my [s3scripts](https://github.com/MSSputnik/s3scripts) to access your files.
 
-To fully extract the component pack archive: `unzip ComponentPack-6.5.0.0.zip`
+To fully extract the component pack archive: `unzip ComponentPack*.zip`
 
 In case your Container Registry already contains the docker images, you can just extract the scripts and heml charts:
 
 ```
-unzip ComponentPack-6.5.0.0.zip \
+unzip ComponentPack*.zip \
   -x microservices_connections/hybridcloud/images/*
 
 ```
@@ -21,7 +21,7 @@ The commands use the configuration file created in [4.2 Create configuration fil
 
 HCL provides the relevant documentation on page [Persistent volumes](https://help.hcltechsw.com/connections/v65/admin/install/cp_prereqs_persist_vols.html).
 
-The usage of my efs-aws storage class didn't work when using the helm option. Therefore the persistent volumes need to be created first.
+The usage of my efs-aws storage class didn´t work when using the helm option. Therefore the persistent volumes need to be created first.
 
 HCL already created some helper files to create the persistent volumes. As we use AWS EFS and EBS and not native NFS we need a modified version.  
 Please check the HCL documentation for more details on the available parameters.  
@@ -58,7 +58,7 @@ helm upgrade connections-volumes \
 
 
 
-# To used an EBS volume for Elastic Search use theses commands:
+# To use an EBS volume for Elastic Search use theses commands:
 
 # Load our environment settings
 . ~/installsettings.sh
@@ -144,7 +144,7 @@ cd microservices_connections/hybridcloud/support
 
 # Create your ECR Repositories
 for i in $(grep -Po 'docker push \${DOCKER_REGISTRY}\/\K[^:]+' setupImages.sh); \
- do aws ecr create-repository --repository-name $i; \
+ do aws ecr create-repository --repository-name $i --region ${AWSRegion}; \
 done 
 
 # Login with your account to the docker registry
@@ -326,8 +326,8 @@ Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 
 
 ```
 ## Customizer (mw-proxy)
-	helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/mw-proxy*)
-	helm upgrade mw-proxy $helmchart -i -f ./install_cp.yaml --namespace connections
+helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/mw-proxy*)
+helm upgrade mw-proxy $helmchart -i -f ./install_cp.yaml --namespace connections
 
 ```
 
@@ -451,7 +451,7 @@ See HCL Documentation for more commands on page [Troubleshooting Component Pack 
 
 ### 5.4.3 Kubernetes Dashboard
 
-Use the installed Kubernetes Dashboard to inspect your infrastructure. See [5.3.7.2 Installing the Kubernetes web-based dashboard](chapter5.html#5372-installing-the-kubernetes-web-based-dashboard)
+Use the installed Kubernetes Dashboard to inspect your infrastructure. See [5.3.9.2 Installing the Kubernetes web-based dashboard](chapter5.html#5392-installing-the-kubernetes-web-based-dashboard)
 
 
 ## 5.5 Populating the Orient Me home page

@@ -67,7 +67,7 @@ bash beas-cnx-cloud/common/scripts/global_ingress.sh
 
 ```
 
-In case everything is configured correctly, the backend infrastructure should not be accessible by using your front door DNS Name.  
+In case everything is configured correctly, the backend infrastructure should now be accessible by using your front door DNS Name.  
 OrientMe, AppReg and Borads should also accessible as this services are forwarded per default in the cnx-ingress-controller. 
 
 ### 6.1.3 Create an ingress resource to forward all push traffic directly to the backend
