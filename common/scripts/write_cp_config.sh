@@ -212,7 +212,7 @@ user:
 
 migration:
   env:
-    API_GATEWAY: https://cnx63.ic4.beaslabs.com/api-boards
+    API_GATEWAY: https://${ic_front_door}/api-boards
     CONNECTIONS_ACTIVITIES_ADMIN_USERNAME: ${ic_admin_user}
     CONNECTIONS_ACTIVITIES_ADMIN_PASSWORD: ${ic_admin_password}
     CONNECTIONS_DB_HOST: ${db2host}

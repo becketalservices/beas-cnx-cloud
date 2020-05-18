@@ -361,7 +361,12 @@ The commands use the configuration file boards-cp.yaml created in [4.2 Create co
 # Run all commands in 1 go. The PVC must be recreated before the mini-io pod is running.
 
 ## Kudos Boards
+### CNX 6.5
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/kudos-boards-cp-1*)
+
+### CNX 6.5.0.1 - the delivered helm chart has a bug. Download the new one:
+curl -LO https://docs.kudosapps.com/assets/config/kubernetes/kudos-boards-cp-1.1.1.tgz
+helmchart=$(ls kudos-boards-cp-1*)
 helm upgrade kudos-boards-cp $helmchart -i -f ./boards-cp.yaml --namespace connections --recreate-pods
 
 kctl delete pvc kudos-boards-minio-claim
