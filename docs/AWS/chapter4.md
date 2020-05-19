@@ -33,25 +33,8 @@ The process is described by HCL on page [Configuring the NGINX proxy server for 
 After the restart, your old infrastructure should behave normal. If not, you need to debug the configuration change and make sure the DNS entries point to the right systems.
 
 
-# 4.2 Create configuration files
 
-To simplify the resource creation, many settings can be placed into yaml files. Theses files will then be referenced by the various installation commands.  
-Currently 3 different configuration files can be created automatically.  
-
-1. global-ingress.yaml - Used by the creation of the global-ingress-controller
-2. install_cp.yaml - Used by the creations of the component pack helm charts
-3. boards-cp.yaml - Used by the creation of the activities plus helm chart
-
-To create these files make sure, your `installsettings.sh` file is up to date, then run:
-
-```
-# Write Config Files
-bash beas-cnx-cloud/common/scripts/write_cp_config.sh
-
-```
-
-
-# 4.3 Installing the Global Ingress Controller
+# 4.2 Installing the Global Ingress Controller
 
 The Customizer requires a reverse proxy in front of the whole infrastructure so that some specific HTTP URLs can be redirected to the Customizer for modification. HCL suggests to use a nginx server. As it is a common problem on kubernetes infrastructures to redirect HTTP(s) traffic to different backend services (internal servers and external endpoints) out of the box solutions exists that can be used.
 
@@ -81,7 +64,7 @@ kctl apply -f beas-cnx-cloud/AWS/kubernetes/aws-external-lb.yaml
 ```
 
 
-# 4.4 Make sure your DNS resolution and service configuration is right
+# 4.3 Make sure your DNS resolution and service configuration is right
 
 The DNS resolution must be set correctly to allow users and services to access your ingress controller from everywhere. 
 Especially when using the automatic SSL Certificate generation configured in 4.5.1 Automatic SSL Certificate retrieval and renewal.
@@ -96,11 +79,11 @@ bash beas-cnx-cloud/AWS/scripts/setupDNS4Ingress.sh
 
 ```
 
-# 4.5 Get SSL Certificate
+# 4.4 Get SSL Certificate
 
 To secure your traffic a SSL certificate is necessary. This certificate must be added to a kubernetes secret.
 
-## 4.5.1 Automatic SSL Certificate retrieval and renewal
+## 4.4.1 Automatic SSL Certificate retrieval and renewal
 When using the ingress controller together with the [cert-manager](https://cert-manager.io/) , the necessary ssl certificates can be retrieved automatically. This setup is currently described here as it is documented by Microsoft on the page [Install cert-manager](https://docs.microsoft.com/en-us/azure/aks/ingress-tls#install-cert-manager).
 
 ** The SSL Certificate retrieval only works, when you are using a pulbic Load Balancer (The ingress controller is accessible via http (port 80) from the public internet and your productive DNS entry is already pointing to your load balancer. (see Topic 4.4) **
@@ -150,7 +133,7 @@ bash beas-cnx-cloud/Azure/scripts/ca_cluster_issuer.sh
 
 ```
 
-## 4.5.2 Manual SSL Certificate creation
+## 4.4.2 Manual SSL Certificate creation
 If you want to use an other CA managed certificate or a self singed certificate create the secret manually.  
 For simplicity we use a self singed certificate in this documentation. Example: [TLS certificate termination](https://github.com/kubernetes/contrib/tree/master/ingress/controllers/nginx/examples/tls)
 
@@ -163,19 +146,24 @@ kubectl -n connections create secret tls tls-secret --key /tmp/tls.key --cert /t
 
 ```
 
-# 4.6 Configure filebrowser to use this new ingress controller
+# 4.5 Configure filebrowser / webfilesys to use this new ingress controller
 
 To test the certificate creation or your assigned certificates, the ingress controller must be configured to forward traffic. 
-The filebrowser created in chapter 3, can be used for this purpose. 
+The filebrowser / webfilesys created in chapter 3, can be used for this purpose. 
 
-Make sure the filebrowser pod is up and running. If not review chapter 3 Install your first application.
+**This scenario is "Configuration possibility 1". With this szenario, you can not use Cutomizer to modify the UI.**
+
+Make sure the filebrowser / webfilesys pod is up and running. If not review chapter [3 Prepare cluster and install your first application](chapter3.html#3-prepare-cluster-and-install-your-first-application).
 
 ```
-kubectl get pods -n connections -l app.kubernetes.io/name=filebrowser
+kubectl get pods -n connections -l app.kubernetes.io/name=filebrowser 
+kubectl get pods -n connections -l app.kubernetes.io/name=webfilesys
 
 ```
 
-The ingress resource will proxy all traffic for /filebrowser from the public IP to the filebrowser service.
+The ingress resource will proxy all traffic for 
+* /filebrowser from the public IP to the filebrowser service
+* /webfilesys from the public IP to the webfilesys service
 
 To create the resource run:
 
@@ -183,9 +171,12 @@ To create the resource run:
 #Run script to create the fb-gloabal-ingress rule
 bash beas-cnx-cloud/common/scripts/fb_global_ingress.sh
 
+#Run script to create the wfs-gloabal-ingress rule
+bash beas-cnx-cloud/common/scripts/wfs_global_ingress.sh
+
 ```
 
-# 4.7 Test your forwarding
+# 4.6 Test your forwarding
 
 To test your forwarding, you can use curl or wget. I do not recommend to use a browser as the forwarding might not fully functional yet and with a full browser it is not that easy to see the details.
 
@@ -212,4 +203,4 @@ The error causes are the same as above.
 
 You can now use a browser to test the access.
 
-**[Install your first application << ](chapter3.html) [ >> Install Component Pack](chapter5.html)**
+**[Prepare cluster and install your first application << ](chapter3.html) [ >> Install Component Pack](chapter5.html)**

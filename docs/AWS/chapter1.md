@@ -191,7 +191,7 @@ sudo yum install -y kubectl
 ### 1.3.6 Install _aws-iam-authenticator_ for Amazon EKS
 
 ```
-curl -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.11.5/2018-12-06/bin/linux/amd64/aws-iam-authenticator
+curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/amd64/aws-iam-authenticator
 chmod 755 aws-iam-authenticator
 sudo mv aws-iam-authenticator /usr/bin/
 
@@ -209,6 +209,7 @@ curl -L -O "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-am
 
 # CP 6.5.0.1 - use latest availave v2 release
 curl -L -O "https://get.helm.sh/helm-v2.16.6-linux-amd64.tar.gz"
+
 tar -zxvf helm*
 sudo mv $HOME/linux-amd64/helm /usr/bin/helm
 
@@ -240,7 +241,7 @@ Check the output of the script.
 
 **Use this instructions to install Docker according to AWS**
 
-[Docker Basics for Amazon ECR](https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-basics.html)
+[Docker Basics for Amazon ECR](https://docs.aws.amazon.com/AmazonECR/latest/userguide/getting-started-cli.html)
 
 ```
 sudo yum update -y

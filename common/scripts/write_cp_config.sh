@@ -26,12 +26,23 @@ if [ "$useStandaloneES" == "1" ]; then
   # use standalone ES Server
   ESHost=$standaloneESHost
   ESPort=$standaloneESPort
+  ESPVC=false
 else
   # use integrated ES Server - values default from values.yaml in orientme helmchart
   ESHost=elasticsearch
   ESPort=9200
+  ESPVC=true
 fi
 
+if [ "$useSolr" == "0" ]; then
+  SolrPVC=false
+  useSolr=true
+  useES=false
+else
+  SolrPVC=true
+  useSolr=false
+  useES=true
+fi
 # Write Component Pack configuration
 cat << EOF2 > install_cp.yaml
 #Component Pack configuration
@@ -67,13 +78,13 @@ customizer:
   enabled: true
 
 solr:
-  enabled: true
+  enabled: $SolrPVC
 
 zk:
-  enabled: true
+  enabled: $SolrPVC
 
 es:
-  enabled: true
+  enabled: $ESPVC
 
 mongo:
   enabled: true
@@ -98,15 +109,15 @@ orient-web-client:
 
 orient-indexing-service:
   indexing:
-    solr: false
-    elasticsearch: true
+    solr: $useSolr
+    elasticsearch: $useES
   elasticsearch:
     host: $ESHost
     port: $ESPort
 
 orient-retrieval-service:
   retrieval:
-    elasticsearch: true
+    elasticsearch: $useES
   elasticsearch:
     host: $ESHost
     port: $ESPort

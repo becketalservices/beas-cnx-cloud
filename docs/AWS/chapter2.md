@@ -17,14 +17,15 @@ cat > ~/installsettings.sh <<EOF
 # EKS settings
 EKSName="cluster name e.g. CNX_Test_EKS" 
 EKSNodeType=m5a.xlarge
-EKSNodeCount=4
+## Depending on your installation
+## Generic Worker: 2; Generic Worker + ES: 4
+EKSNodeCount=2
 EKSNodeVolumeSize=100
 EKSNodePublicKey="Your EC2 Key Name"
 AWSRegion="Your AWS Region e.g. eu-west-1"
 #VPCId=<VPC Id e.g. vpc-2345abcd>
 SUBNETID=<List of Subnet IDs e.g.: subnet-a9189fe2,subnet-50432629>
-#SecGroup=<Security Group e.g.: sg-f5c54184>
-#IAMRoleName=<IAM Role Name>
+
 
 # Route53
 HostedZoneId="HostedZoneId"
@@ -32,6 +33,11 @@ HostedZoneIdPublic="HostedZoneIdPublic"
 
 # EFS settings
 storageclass=aws-efs
+
+# ES settings
+useStandaloneES=1
+standaloneESHost=<Hostname of your ES Server endpoint>
+standaloneESPort=443
 
 # ECR settings
 ECRRegistry="your docker registry"
@@ -46,11 +52,12 @@ ic_admin_user="admin_user"
 ic_admin_password='admin_password'
 ic_internal="ic_internal"
 ic_front_door="ic_front_door"
-master_ip="ic_front_door"
+master_ip="master_ip"
 # "elasticsearch customizer orientme"
 starter_stack_list=""
 # for test environments with just one node or no taint nodes, set to false.
-nodeAffinityRequired=true
+nodeAffinityRequired=false
+useSolr=0
 
 # KUDOS
 KudosBoardsLicense=""
@@ -128,7 +135,7 @@ Taint and label the infrastructure worker nodes as described in [Labeling and ta
 
 ## 2.5 Create a AWS EFS Storage and Storage Class
 
-### 1.5.1 Create the EFS Storage
+### 2.5.1 Create the EFS Storage
 
 Create your EFS Storage by following the AWS documentation [Step 2: Create Your Amazon EFS File System](https://docs.aws.amazon.com/efs/latest/ug/gs-step-two-create-efs-resources.html).
 
@@ -180,30 +187,7 @@ done
 
 **After EFS creation, wait 2 minutes until DNS is up to date.**
 
-### 2.5.2 Create Kubernetes resources
-
-**Storage Class**
-
-To create the storage class based on your settings:
-
-```
-# Create Storage Class
-kubectl apply -f beas-cnx-cloud/AWS/kubernetes/aws-efs-sc.yml
-
-```
-
-To check that the storage class has been created run `kubectl get storageclass aws-efs`
-
-In case you named your storage class differently, update the installsettings.sh file. 
-
-
-**RBAC rights**
-
-To grant the correct rights create the necessary cluster roles and bindings
-
-run `kubectl apply -f beas-cnx-cloud/AWS/kubernetes/aws-pvc-roles.yaml`
-
-### 2.5.3 Create the efs provisioner
+### 2.5.2 Create the efs provisioner
 
 replace the file.system.id with your id and the aws.region by your region.  
 run the command:
@@ -218,19 +202,11 @@ fsid=$efsid
 # Region:
 region=$AWSRegion
 
-# Create Configmap
-kubectl create configmap efs-provisioner \
---from-literal=file.system.id=$fsid \
---from-literal=aws.region=$region \
---from-literal=provisioner.name=example.com/aws-efs 
-
-# Create efs-provisioner-deployment.yml
-sed -e "s/server:.*/server: $fsid.efs.$region.amazonaws.com/" \
- -e "s/path:.*/path: \//" \
- beas-cnx-cloud/AWS/kubernetes/efs-provisioner-deployment.yml > efs-provisioner-deployment.yml
-
-# Apply configuration
-kubectl apply -f efs-provisioner-deployment.yml
+# Use the official helm chart to install:
+helm install stable/efs-provisioner \
+  --set efsProvisioner.efsFileSystemId=$fsid \
+  --set efsProvisioner.awsRegion=$region \
+  --set efsProvisioner.storageClass.name=$storageclass
 
 ```
 
@@ -241,4 +217,4 @@ In case the container is not up and running after 2 minutes, check what went wro
 To restart the efs provisioner, delete the pod to get it recreated immediately. `kubectl delete pods -l app=efs-provisioner`
 
 
-**[Create your AWS environment << ](chapter1.html) [ >> Install your first application](chapter3.html)**
+**[Create your AWS environment << ](chapter1.html) [ >> Prepare cluster and install your first application](chapter3.html)**

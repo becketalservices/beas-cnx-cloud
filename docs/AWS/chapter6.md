@@ -1,5 +1,7 @@
 # 6 Configure Ingress
 
+** STILL NEEDS REWORK FOR NEW NETWORK SETUP **
+
 HCL uses the Kubernetes Feature that all services using NodePort are accessible through all Nodes with the same port. As the Master Node is a single server or has a Load Balancer in front in case of multiple Master Nodes, the node port can always be reached through the master node or the master load balancer.  
 When using managed Kubernetes, the master server can not used for this purpose. AWS (as all other cloud providers) do not expose the ports on the master node. Therefore other techniques to access the services must be used.
 

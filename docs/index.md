@@ -11,7 +11,7 @@ This documentation provides information and installation guidelines to get HCL C
 
 __Amazon Web Services AWS__  
 
-Instructions based on HCL Connections Component Pack Version 6.5  
+Instructions based on HCL Connections Component Pack Version 6.5.0.1 
 [Installation instructions for Amazon Web Services](AWS/index.md)  
 The installation uses as less as possible load balancer and does not use the classic HTTP Servers as proxy for the new Kubernetes services.
   
