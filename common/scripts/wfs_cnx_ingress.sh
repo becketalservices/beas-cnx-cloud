@@ -6,23 +6,18 @@ cat <<EOF | kubectl apply -f -
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: wfs-gloabal-ingress
+  name: cnx-ingress-wfs
   namespace: connections
   annotations:
-    kubernetes.io/ingress.class: global-nginx
-    cert-manager.io/cluster-issuer: letsencrypt
+    kubernetes.io/ingress.class: nginx
 spec:
-  tls:
-  - hosts:
-    - $ic_front_door 
-    secretName: tls-secret
   rules:
-  - host: $ic_front_door
+  - host: '*.$GlobalDomainName'
     http:
       paths:
-      - path: /webfilesys
-        backend:
+      - backend:
           serviceName: webfilesys 
           servicePort: 8080
+        path: /webfilesys
 EOF
 

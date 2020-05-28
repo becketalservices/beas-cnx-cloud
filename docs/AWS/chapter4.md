@@ -84,35 +84,28 @@ bash beas-cnx-cloud/AWS/scripts/setupDNS4Ingress.sh
 To secure your traffic a SSL certificate is necessary. This certificate must be added to a kubernetes secret.
 
 ## 4.4.1 Automatic SSL Certificate retrieval and renewal
-When using the ingress controller together with the [cert-manager](https://cert-manager.io/) , the necessary ssl certificates can be retrieved automatically. This setup is currently described here as it is documented by Microsoft on the page [Install cert-manager](https://docs.microsoft.com/en-us/azure/aks/ingress-tls#install-cert-manager).
+When using the ingress controller together with the [cert-manager](https://cert-manager.io/) , the necessary ssl certificates can be retrieved automatically. 
 
 ** The SSL Certificate retrieval only works, when you are using a pulbic Load Balancer (The ingress controller is accessible via http (port 80) from the public internet and your productive DNS entry is already pointing to your load balancer. (see Topic 4.4) **
 
 Setup the certificate manager is simple when your ingress controller has a public IP.  
-I recommend trying out the configuration which is copied from Microsoft:
 
 ```
-# Install the CustomResourceDefinition resources separately
-kubectl apply -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.8/deploy/manifests/00-crds.yaml
-
-# Create the namespace for cert-manager
+# Create namespace
 kubectl create namespace cert-manager
 
-# Label the cert-manager namespace to disable resource validation
-kubectl label namespace cert-manager certmanager.k8s.io/disable-validation=true
-
-# Add the Jetstack Helm repository
+# Add Jetstack Helm repository
 helm repo add jetstack https://charts.jetstack.io
 
-# Update your local Helm chart repository cache
+# Update your local Heml chart repositry cache:
 helm repo update
 
 # Install the cert-manager Helm chart
-helm install \
+helm install jetstack/cert-manager \
   --name cert-manager \
   --namespace cert-manager \
-  --version v0.8.0 \
-  jetstack/cert-manager
+  --set rbac.create=true \
+  --set installCRDs=true
   
 ```
 

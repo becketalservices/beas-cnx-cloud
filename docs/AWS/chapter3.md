@@ -88,7 +88,7 @@ helm upgrade connections-volumes \
 # Create ElasticSearch Volumes on the default storage (gp2)
 helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
   --name=connections-volumes \
-  --set customizer.enabled=false \
+  --set customizer.enabled=true \
   --set solr.enabled=false \
   --set zk.enabled=false \
   --set es.enabled=true \
@@ -98,7 +98,7 @@ helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
 helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
   --name=connections-volumes \
   --set storageClassName=$storageclass \
-  --set customizer.enabled=false \
+  --set customizer.enabled=true \
   --set solr.enabled=true \
   --set zk.enabled=true \
   --set es.enabled=false \

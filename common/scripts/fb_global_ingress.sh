@@ -10,7 +10,7 @@ metadata:
   namespace: connections
   annotations:
     kubernetes.io/ingress.class: global-nginx
-    certmanager.k8s.io/cluster-issuer: letsencrypt
+    cert-manager.io/cluster-issuer: letsencrypt
 spec:
   tls:
   - hosts:

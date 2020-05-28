@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: nginx-ingress
+    app: cnx-ingress 
     component: controller
     release: connections
   name: connections-nginx-ingress-controller-intern
@@ -21,7 +21,7 @@ spec:
     protocol: TCP
     targetPort: https
   selector:
-    app: nginx-ingress
+    app: cnx-ingress
     component: controller
     release: connections
   sessionAffinity: None

@@ -8,7 +8,7 @@ components. Please use a payed account.
 
 1. [Create your AWS environment](chapter1.html)
 2. [Create Kubernetes infrastructure on AWS](chapter2.html)
-3. [Install your first application](chapter3.html)
+3. [Prepare cluster and install your first application](chapter3.html)
 4. [Configure your Network](chapter4.html)
 5. [Install Component Pack](chapter5.html)
 6. [Configure Ingress](chapter6.html)
