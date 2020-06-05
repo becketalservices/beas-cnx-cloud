@@ -1,0 +1,5 @@
+elasticsearch-metrics.p12
+elasticsearch-metrics.crt.pem
+elasticsearch-metrics.key.pem
+chain-ca.pem
+settings.sh

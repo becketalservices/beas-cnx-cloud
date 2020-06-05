@@ -23,26 +23,35 @@ tcp:
   "30379": connections/haproxy-redis:6379
 EOF1
 
+# convert $starter_stack_list from a , separated list to a space separated list and remove kudos-boards in case it is available
+stack_list=$(echo $starter_stack_list | sed -e "s/,/ /g" -e "s/kudos-boards//" |xargs)
+
 if [ "$useStandaloneES" == "1" ]; then
   # use standalone ES Server
   ESHost=$standaloneESHost
   ESPort=$standaloneESPort
   ESPVC=false
+  if [ "$standaloneESHost" -a "$standaloneESPort" ]; then
+    ESIndexing=true
+  else
+    ESIndexing=false
+  fi
 else
   # use integrated ES Server - values default from values.yaml in orientme helmchart
   ESHost=elasticsearch
   ESPort=9200
   ESPVC=true
+  ESIndexing=true
 fi
 
 if [ "$useSolr" == "0" ]; then
   SolrPVC=false
-  useSolr=true
-  useES=false
+  SolrIndexing=false
+  ESRetrieval=true
 else
   SolrPVC=true
-  useSolr=false
-  useES=true
+  SolrIndexing=true
+  ESRetrieval=false
 fi
 # Write Component Pack configuration
 cat << EOF2 > install_cp.yaml
@@ -95,7 +104,7 @@ env:
   set_ic_admin_password: "$ic_admin_password"
   set_ic_internal: "$ic_internal"
   set_master_ip: "$master_ip"
-  set_starter_stack_list: "$starter_stack_list"
+  set_starter_stack_list: "$stack_list"
   skip_configure_redis: true
 
 mongodb:
@@ -110,15 +119,15 @@ orient-web-client:
 
 orient-indexing-service:
   indexing:
-    solr: $useSolr
-    elasticsearch: $useES
+    solr: $SolrIndexing
+    elasticsearch: $ESIndexing
   elasticsearch:
     host: $ESHost
     port: $ESPort
 
 orient-retrieval-service:
   retrieval:
-    elasticsearch: $useES
+    elasticsearch: $ESRetrieval
   elasticsearch:
     host: $ESHost
     port: $ESPort

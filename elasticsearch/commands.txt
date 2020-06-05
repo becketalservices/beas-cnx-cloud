@@ -1,0 +1,31 @@
+List All Indexes
+./esget.sh "_cat/indices?v"
+
+List Index Content:
+./esget.sh "${index}/_search?q=*&pretty"
+
+Delete Index:
+./esdelete.sh ${index}?pretty
+
+Update Replica Count
+./esput.sh "icmetrics_a_2020_1h/_settings?pretty" rem_replica.json
+
+#### Templates  #####
+Get list of current templates:
+./esget.sh _template?pretty
+
+PUT template for all indices
+./esput.sh _template/template_1?pretty template.json
+
+Create new index (with default settings)
+./esput.sh "test?pretty" none.json
+
+
+Get Node information
+./esget.sh "_nodes"
+./esget.sh "_nodes/os"
+./esget.sh "_nodes/jvm"
+./esget.sh "_nodes/plugins"
+
+https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-nodes-info.html
+
