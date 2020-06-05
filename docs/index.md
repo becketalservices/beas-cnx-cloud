@@ -9,11 +9,17 @@ As many companies are now using cloud services, using Kubernetes services out of
 
 This documentation provides information and installation guidelines to get HCL Connections Component Pack running on a managed Kubernetes service on one of the main cloud providers.
 
+__Minikube__
+
+Instructions based on HCL Connections Component Pack Version 6.5.0.1  
+[Create an HCL Component Pack installation on minikube](minikube/index.md)  
+The installation uses as less as possible hardware and can be used for prove of concept installations.
+
 __Amazon Web Services AWS__  
 
 Instructions based on HCL Connections Component Pack Version 6.5.0.1  
 [Installation instructions for Amazon Web Services](AWS/index.md)  
-The installation uses as less as possible load balancer and does not use the classic HTTP Servers as proxy for the new Kubernetes services.
+The installation uses AWS Services where ever possible.
   
 __Microsoft Azure__
 
@@ -30,4 +36,6 @@ After following the __Microsoft Azure guide__ an infrastructure similar to this 
 
 ![Connections Infrastructure Azure](images/ConnectionsInfrastructureAzure.png "Connections Infrastructure Azure")
 
+After following the __Minikube guide__ an infrastructure similar to this picture is running:
+![Connections Infrastructure minikube](images/CP_Challenge_Overview.png "Connections Infrastructure minikube")
 
