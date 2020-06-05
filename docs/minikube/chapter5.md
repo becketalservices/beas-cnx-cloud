@@ -46,10 +46,11 @@ enableSslForMetrics('/opt/IBM/data/shared/elasticsearch/elasticsearch-metrics.p1
 
 ```
 
-** Configure Type Ahead Search**
+**Configure Type Ahead Search**
 
 1. Update type ahead settings in search-config.xml
     
+    ```
     <property name="quickResults">
         <propertyField name="quick.results.connections" value=""/>
         <!-- disable solr for indexing -->
@@ -64,23 +65,30 @@ enableSslForMetrics('/opt/IBM/data/shared/elasticsearch/elasticsearch-metrics.p1
         <propertyField name="quick.results.elasticsearch.shards.count" value="4"/>
         <propertyField name="quick.results.elasticsearch.index.name" value="quickresults"/>
     </property>
+    ```
     
 2. Update LC-config.xml
     
+    ```
     <genericProperty name="quickResultsEnabled">true</genericProperty>
     
-
+    ```
+    
 3. Synchronize the nodes and then restart the servers or clusters that are running the Search and Common applications
 4. Run wsadmin command: (the 2nd line was already shown to you be the `getcerts.sh` command.)
     
+    ```
     execfile('searchAdmin.py')
     SearchService.setESQuickResultsBaseUrl("https://<master-ip>:30099")
+    ```
     
 5. Create the index
     
+    ```
     SearchService.createESQuickResultsIndex()
+    ```
 
-On Kubernetes host verify that the index was created:
+On Kubernetes host verify that the index was created:  
 `bash beas-cnx-cloud/elasticsearch/esget.sh "_cat/indices?v"`
 
 
@@ -157,15 +165,15 @@ Follow the instructions [Configuring the Orient Me component](https://help.hclte
 
 ### 5.3.1 Configuring the HTTP server for Orient Me
 
-Update your HTTP Server configuration: (https://help.hcltechsw.com/connections/v65/admin/install/cp_config_om_http_server.html)
+Update your HTTP Server configuration: <https://help.hcltechsw.com/connections/v65/admin/install/cp_config_om_http_server.html>
 
 ### 5.3.2 Enabling profiles events for Orient Me
 
-Update your TDI and LC-config: (https://help.hcltechsw.com/connections/v65/admin/install/cp_config_om_enable_profiles_events.html)
+Update your TDI and LC-config: <https://help.hcltechsw.com/connections/v65/admin/install/cp_config_om_enable_profiles_events.html>
 
 ### 5.3.3 Configuring the Orient Me home page
 
-Update your search and LC-config: (https://help.hcltechsw.com/connections/v65/admin/install/cp_config_om_enable_notifications.html)
+Update your search and LC-config: <https://help.hcltechsw.com/connections/v65/admin/install/cp_config_om_enable_notifications.html>
 
 ### 5.3.4 Populating the Orient Me home page
 
@@ -234,7 +242,8 @@ The new IBM HTTP Server is listening on port 80 an 443 and is used as reverse pr
 
 1. Update your httpd.conf file of your ingress HTTP server to redirect traffic via customizer.
     Replace ${master_ip} with your hostname or ip of your master or k8s load balancer.
-    
+
+    ```
     SSLProxyEngine on
     ProxyPreserveHost On
     ProxyPass "/files/customizer" "http://${master_ip}:30301/files/customizer"
@@ -273,7 +282,7 @@ The new IBM HTTP Server is listening on port 80 an 443 and is used as reverse pr
     ProxyPassReverse "/viewer" "http://${master_ip}:30301/viewer"
     ProxyPass "/" "https://${ic_internal}:445/"
     ProxyPassReverse "/" "https://${ic_internal}:445/"
-    
+    ```    
 
 ## 5.5 Integrate Activities Plus / Boards
 
