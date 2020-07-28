@@ -11,8 +11,9 @@ The infrastructure requires as little as possible resources. A Free Tier or Tria
 2. [Create your Kubernetes environment](chapter2.html)
 3. [Prepare cluster](chapter3.html)
 4. [Install Component Pack](chapter4.html)
-5. [Integration](chapter5.html)
-6. [Deploy additional features](chapter6.html)
+5. [Integration](../integration/index.html)
+6. [Customizer](../customizer/index.html)
+7. [Deploy additional features](../addons/index.html)
 
 In case you want to migrate you ElasticSearch data from EFS to EBS, you can use the process [Migrate ES Data from EFS to EBS](../AWS/migrate_es_data.html).
 

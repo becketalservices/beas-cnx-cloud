@@ -304,4 +304,4 @@ Use the installed Kubernetes Dashboard to inspect your infrastructure. See [4.1.
 
 
 
-**[Prepare cluster << ](chapter3.html) [ >> Integration](chapter5.html)**
+**[Prepare cluster << ](chapter3.html) [ >> Integration](../integration/index.html)**
