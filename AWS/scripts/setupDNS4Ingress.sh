@@ -17,14 +17,20 @@ for c in $controller; do
       else
         HostedZone=$HostedZoneIdPublic
       fi
-      echo "assign $lbhost to Zone ${HostedZone} to record $ic_front_door"
+      if [ "${c::6}" == "connec" ]; then
+        # it is an internal LB. User master_ip
+        dnsname=$master_ip
+      else
+        dnsname=$ic_front_door
+      fi 
+      echo "assign $lbhost to Zone ${HostedZone} to record $dnsname"
 cat > /tmp/basic_dns.json <<EOF
 {
   "Changes": [
     {
       "Action": "UPSERT",
       "ResourceRecordSet": {
-        "Name": "$ic_front_door",
+        "Name": "$dnsname",
         "Type": "CNAME",
         "TTL": 300,
         "ResourceRecords": [

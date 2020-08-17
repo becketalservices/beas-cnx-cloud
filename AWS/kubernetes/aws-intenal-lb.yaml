@@ -4,7 +4,7 @@ metadata:
   labels:
     app: cnx-ingress 
     component: controller
-    release: connections
+    release: cnx-ingress 
   name: connections-nginx-ingress-controller-intern
   namespace: connections
   annotations:
@@ -16,13 +16,17 @@ spec:
     port: 80
     protocol: TCP
     targetPort: http
-  - name: https
-    port: 443
+  - name: redis 
+    port: 30379
     protocol: TCP
-    targetPort: https
+    targetPort: 30379
+  - name: es
+    port: 30099
+    protocol: TCP
+    targetPort: 30099
   selector:
     app: cnx-ingress
     component: controller
-    release: connections
+    release: cnx-ingress 
   sessionAffinity: None
   type: LoadBalancer

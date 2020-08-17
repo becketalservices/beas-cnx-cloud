@@ -5,6 +5,10 @@
 
 # Write global ingress controller configuration
 
+if [ "$GlobalIngressPublic" != "1" ]; then
+  annotationPrivate="      service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0"
+fi
+
 cat << EOF1 > global-ingress.yaml
 #Global Ingress configuration
 
@@ -15,13 +19,13 @@ controller:
     proxy-body-size: "512m"
   service:
     annotations:
-      service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "590"
-
-tcp:
-  "30099": connections/elasticsearch:9200
-  "30379": connections/haproxy-redis:6379
+$annotationPrivate
 EOF1
+# to forward tcp traffic throuh nginx proxy (for global not necessary anmore)
+#tcp:
+#  "30099": connections/elasticsearch:9200
+#  "30379": connections/haproxy-redis:6379
 
 # convert $starter_stack_list from a , separated list to a space separated list and remove kudos-boards in case it is available
 stack_list=$(echo $starter_stack_list | sed -e "s/,/ /g" -e "s/kudos-boards//" |xargs)
@@ -48,10 +52,14 @@ if [ "$useSolr" == "0" ]; then
   SolrPVC=false
   SolrIndexing=false
   ESRetrieval=true
+  SolrRepCount=0
+  ZooRepCount=0
 else
   SolrPVC=true
   SolrIndexing=true
   ESRetrieval=false
+  SolrRepCount=3
+  ZooRepCount=3
 fi
 # Write Component Pack configuration
 cat << EOF2 > install_cp.yaml
@@ -98,6 +106,12 @@ es:
 
 mongo:
   enabled: true
+
+zookeeper:
+  replicaCount: $ZooRepCount 
+
+solr-basic:
+  replicaCount: $SolrRepCount 
 
 env:
   set_ic_admin_user: "$ic_admin_user"
@@ -146,6 +160,10 @@ community-suggestions:
 
 nodeAffinityRequired: $nodeAffinityRequired
 deploymentType: hybrid_cloud
+
+tcp:
+  "30099": connections/elasticsearch:9200
+  "30379": connections/haproxy-redis:6379
 
 EOF2
 
