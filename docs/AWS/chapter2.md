@@ -14,9 +14,11 @@ Most of the scripts and commands reference this file.
 ```
 # Write our environment settings
 cat > ~/installsettings.sh <<EOF
+# Network
+GlobalIngressPublic=1
 # EKS settings
 EKSName="cluster name e.g. CNX_Test_EKS" 
-EKSNodeType=m5a.xlarge
+EKSNodeType=t3a.xlarge
 ## Depending on your installation
 ## Generic Worker: 2; Generic Worker + ES: 4
 EKSNodeCount=2
@@ -53,7 +55,7 @@ ic_admin_password='admin_password'
 ic_internal="ic_internal"
 ic_front_door="ic_front_door"
 master_ip="master_ip"
-# "elasticsearch customizer orientme"
+# "elasticsearch,customizer,orientme,kudos-boards"
 starter_stack_list=""
 # for test environments with just one node or no taint nodes, set to false.
 nodeAffinityRequired=false
@@ -217,4 +219,4 @@ In case the container is not up and running after 2 minutes, check what went wro
 To restart the efs provisioner, delete the pod to get it recreated immediately. `kubectl delete pods -l app=efs-provisioner`
 
 
-**[Create your AWS environment << ](chapter1.html) [ >> Prepare cluster and install your first application](chapter3.html)**
+**[Create your AWS environment << ](chapter1.html) [ >> Prepare cluster](chapter3.html)**

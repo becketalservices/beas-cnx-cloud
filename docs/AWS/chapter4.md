@@ -12,7 +12,7 @@ This picture shows the target network setup.
 
 ## 4.1 Change Service URL for your existing infrastructure
 
-Your existing infrastructure must have a different DNS name than the frontend ingress controller so that traffic can flow from the users through the ingress controller into your existing infrastructure. To avoid that the existing WebSphere servers start to communicate through the ingress controller what will produce a lot of unnecessary load, the DNS Names and service configurations must be adjusted.
+Your existing infrastructure must have a different DNS name than the global ingress controller so that traffic can flow from the users through the ingress controller into your existing infrastructure. To avoid that the existing WebSphere servers start to communicate through the ingress controller what will produce a lot of unnecessary load, the DNS Names and service configurations must be adjusted.
 
 ### 4.1.1 Create new DNS entry for your existing front end
 
@@ -45,21 +45,12 @@ There are different possibilities on how to connect to a Kubernetes cluster. Usu
 
 The infrastructure will contain 2 ingress controller. The global we are currently set up and the cnx-ingress-controller provided by HCL. All HCL and Kudos components assume that the cnx-ingress-controller is the default ingress controller. Therefore the new global-ingress-controller uses a different ingress-class called `global-nginx`. 
 
-To install the globa ingress controller make sure you created the global-ingress.yaml file, then run:
+To install the globa ingress controller make sure you created the global-ingress.yaml file. 
+Depending on the setting "GlobalIngressPublic" the ingress controller will create a public or private load balancer.
 
 ```
 # Global Ingress Controller
 helm upgrade global-nginx stable/nginx-ingress -i -f ./global-ingress.yaml --namespace connections 
-
-```
-
-The helm chart automatically creates the internal load balancer, forwarding http, https, 30099 (Redis) and 30379 (Elasticsearch).  
-
-To allow your external users access this ingress controller via http / https, create an external facing loadbalancer by running:
-
-```
-# Create External LB
-kctl apply -f beas-cnx-cloud/AWS/kubernetes/aws-external-lb.yaml
 
 ```
 
@@ -86,7 +77,9 @@ To secure your traffic a SSL certificate is necessary. This certificate must be 
 ## 4.4.1 Automatic SSL Certificate retrieval and renewal
 When using the ingress controller together with the [cert-manager](https://cert-manager.io/) , the necessary ssl certificates can be retrieved automatically. 
 
-** The SSL Certificate retrieval only works, when you are using a pulbic Load Balancer (The ingress controller is accessible via http (port 80) from the public internet and your productive DNS entry is already pointing to your load balancer. (see Topic 4.4) **
+**The SSL Certificate retrieval only works, when you are using a pulbic Load Balancer (The ingress controller is accessible via http (port 80) from the public internet and your productive DNS entry is already pointing to your load balancer.**
+
+**Make sure that the internal and external DNS resolution works for your public DNS Name. The cert manager will check the dns name interally as well.**
 
 Setup the certificate manager is simple when your ingress controller has a public IP.  
 
@@ -139,35 +132,26 @@ kubectl -n connections create secret tls tls-secret --key /tmp/tls.key --cert /t
 
 ```
 
-# 4.5 Configure filebrowser / webfilesys to use this new ingress controller
+# 4.5 Forward traffic through global ingress
 
-To test the certificate creation or your assigned certificates, the ingress controller must be configured to forward traffic. 
-The filebrowser / webfilesys created in chapter 3, can be used for this purpose. 
+To forward the traffic through the new global ingress controller to your WebSphere infrastructure you need to define an external service to route the traffic to and then add the ingress configuration to kubernetes.
 
-**This scenario is "Configuration possibility 1". With this szenario, you can not use Cutomizer to modify the UI.**
-
-Make sure the filebrowser / webfilesys pod is up and running. If not review chapter [3 Prepare cluster and install your first application](chapter3.html#3-prepare-cluster-and-install-your-first-application).
+To create the external service for your existing infrastructure run:
 
 ```
-kubectl get pods -n connections -l app.kubernetes.io/name=filebrowser 
-kubectl get pods -n connections -l app.kubernetes.io/name=webfilesys
+# Load settings
+. ~/installsettings.sh
+
+# Create external service cnx-backend
+kubectl -n connections create service externalname cnx-backend \
+  --external-name $ic_internal
+
+# create ingress configuration to forward traffic
+bash beas-cnx-cloud/common/scripts/global_ingress.sh
 
 ```
 
-The ingress resource will proxy all traffic for 
-* /filebrowser from the public IP to the filebrowser service
-* /webfilesys from the public IP to the webfilesys service
 
-To create the resource run:
-
-```
-#Run script to create the fb-gloabal-ingress rule
-bash beas-cnx-cloud/common/scripts/fb_global_ingress.sh
-
-#Run script to create the wfs-gloabal-ingress rule
-bash beas-cnx-cloud/common/scripts/wfs_global_ingress.sh
-
-```
 
 # 4.6 Test your forwarding
 
@@ -196,4 +180,4 @@ The error causes are the same as above.
 
 You can now use a browser to test the access.
 
-**[Prepare cluster and install your first application << ](chapter3.html) [ >> Install Component Pack](chapter5.html)**
+**[Prepare cluster << ](chapter3.html) [ >> Install Component Pack](chapter5.html)**

@@ -14,7 +14,7 @@ The commands use the configuration file install_cp.yaml created in [3.1 Create c
 
 In case you currently set up only parts of the infrastructure but plan to extend it later, make sure you set the full starter\_stack\_list="elasticsearch customizer orientme". The bootstrap process creates certificates and other required artifacts which will be missing when you create the other infrastructure components later.
 
-**The master_ip is currently set in the installsettings.sh to your internal load balancer. The global ingress controller is used to forward traffic for Redis and Elastic Search. Depending on the status of your existing backend infrastructure, set "skip_configure_redis=false" in the configuration file which will try to configure redis traffic on your existing backend infrastructure.**
+**The master_ip is currently set in the installsettings.sh to your internal load balancer. Depending on the status of your existing backend infrastructure, set "skip_configure_redis=false" in the configuration file which will try to configure redis traffic on your existing backend infrastructure.**
 
 
 ```
@@ -107,24 +107,42 @@ kubectl -n connections scale statefulset zookeeper --replicas=0
 
 ```
 
-### 5.1.5 Installing the Installing Ingress Controller
+### 5.1.5 Installing the Ingress Controller
 
 [Installing Ingress Controller](https://help.hcltechsw.com/connections/v65/admin/install/cp_installing_ingress_controller.html)
 
 **Only relevant for orientme and customizer**
 
+To save some money, the redis traffic can be exposed through this ingress controller. To do so a appropriate config map needs to be created as the template does not exist in the helm chart.
 
 ```
+## Create TCP config map
+bash beas-cnx-cloud/common/scripts/cnx_ingress_tcp.sh
+
 ## CNX Ingress Controller
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/cnx-ingress-*)
 helm upgrade cnx-ingress $helmchart -i -f ./install_cp.yaml --namespace connections
-
 
 ```
 
 Watch the container creation by issuing the command: `watch -n 10 'kubectl -n connections get pods | grep "^cnx-"'`  
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes up to 1 minutes to complete.
 
+To expose the ingress controller though a load balancer run:
+
+```
+kubectl apply -f beas-cnx-cloud/AWS/kubernetes/aws-intenal-lb.yaml
+
+```
+
+**Map LB to your master_ip dns resolution**
+
+experimental script:
+
+```
+bash beas-cnx-cloud/AWS/scripts/setupDNS4Ingress.sh
+
+```
 
 
 ### 5.1.6 Installing Elasticsearch
@@ -163,10 +181,16 @@ Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 
 #### Add Customizer files to persistent storage
 
 HCL delivers 3 files which should be copied onto your customizer persistent storage. 
-To do so, run:
+
+Unfortunately, the files in the CP 6.5 CR1 are some html files and not correct JavaScript files.
+Download the correct files from: https://github.com/OpenCode4Connections/customizer-utils into directory customizer-utils.
+
+To upload to customizer files, run:
 
 ```
-for file in microservices_connections/hybridcloud/support/customizer/*; do
+curl -L -O https://github.com/OpenCode4Connections/customizer-utils/archive/master.zip
+unzip master.zip
+for file in customizer-utils-master/*; do
   kubectl cp -n connections $file $(kubectl get pods -n connections | grep mw-proxy | awk 'NR==1{print $1}'):/mnt;
 done
 
@@ -312,4 +336,4 @@ kubectl exec -n connections -it $(kubectl get pods -n connections | grep people-
 
 ```
 
-**[Configure your Network << ](chapter4.html) [ >> Configure Ingress](chapter6.html)**
+**[Configure your Network << ](chapter4.html) [ >> Integration](../integration/index.html)**
