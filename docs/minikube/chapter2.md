@@ -59,7 +59,7 @@ helm install stable/docker-registry \
 
 # 6. Check that you can access your Registry via curl
 # !! curl shoud trust the certificate. No -k option necessary.
-curl -v https://$HOSTNAME:31456
+curl --ipv4 -v https://$HOSTNAME:31456
 
 ```
 

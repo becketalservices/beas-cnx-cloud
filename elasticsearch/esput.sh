@@ -14,5 +14,5 @@ if [ ! -f "$2" ]; then
   exit 1
 fi
 
-curl -X "PUT" -k $CERT -H "Content-Type: application/json" -d @$2 "${ESURL}/$1"
+curl -X "PUT" CURLOPTS -k $CERT -H "Content-Type: application/json" -d @$2 "${ESURL}/$1"
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-#version=202005071236
+#version=202012071630
 
 . ~/installsettings.sh
 
@@ -48,6 +48,22 @@ else
   ESIndexing=true
 fi
 
+if [ "$CNXSize" == "small" ]; then
+  rCountNormal=1
+  rCountSmall=0
+  minCount=1
+  maxCount=3
+else
+  rCountNormal=3
+  rCountSmall=1
+  minCount=3
+  maxCount=3
+fi
+
+if [ -z "$CNXNS" ]; then
+  CNXNS=connections
+fi
+
 if [ "$useSolr" == "0" ]; then
   SolrPVC=false
   SolrIndexing=false
@@ -58,61 +74,31 @@ else
   SolrPVC=true
   SolrIndexing=true
   ESRetrieval=false
-  SolrRepCount=3
-  ZooRepCount=3
+  SolrRepCount=$rCountNormal
+  ZooRepCount=$rCountNormal
 fi
+
 # Write Component Pack configuration
 cat << EOF2 > install_cp.yaml
 #Component Pack configuration
 
-global:
-  onPrem: true
-  image:
-    repository: ${ECRRegistry}/connections
+#persistent disks & bootstrape & connections-env & elasticsearch & ingress controller & mw-proxy & sanity
+namespace: $CNXNS
 
-image:
-  repository: ${ECRRegistry}/connections
-
-onPrem: true
-createSecret: false
-ic:
-  host: $ic_front_door
-  internal: $ic_internal
-  interserviceOpengraphPort: 443
-  interserviceConnectionsPort: 443
-  interserviceScheme: https
-
-controller:
-  service:
-    enableHttps: false
-
-ingress:
-  hosts:
-    domain: ${GlobalDomainName}
-
+#Persistent Disks
 storageClassName: $storageclass
-
+mongo:
+  enabled: true
+solr:
+  enabled: $SolrPVC
+zk:
+  enabled: $SolrPVC
+es:
+  enabled: $ESPVC
 customizer:
   enabled: true
 
-solr:
-  enabled: $SolrPVC
-
-zk:
-  enabled: $SolrPVC
-
-es:
-  enabled: $ESPVC
-
-mongo:
-  enabled: true
-
-zookeeper:
-  replicaCount: $ZooRepCount 
-
-solr-basic:
-  replicaCount: $SolrRepCount 
-
+#bootstrap
 env:
   set_ic_admin_user: "$ic_admin_user"
   set_ic_admin_password: "$ic_admin_password"
@@ -120,16 +106,81 @@ env:
   set_master_ip: "$master_ip"
   set_starter_stack_list: "$stack_list"
   skip_configure_redis: true
+image:
+  repository: ${ECRRegistry}/connections
+
+#connections-env
+ic:
+  host: $ic_front_door
+  internal: $ic_internal
+  interserviceOpengraphPort: 443
+  interserviceConnectionsPort: 443
+  interserviceScheme: https
+createSecret: false
+
+#elasticsearch
+nodeAffinityRequired: false
+deploymentType: hybrid_cloud
+
+client:
+  replicas: $rCountNormal
+
+data:
+  replicas: $rCountNormal
+
+master:
+  replicas: $rCountNormal
+
+#infrastructure
+haproxy:
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
+
+redis:
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
+
+redis-sentinel:
+  env:
+    numRedisServerReplicaCount: $rCountNormal
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
 
 mongodb:
   createSecret: false
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
+
+appregistry-client:
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
 
 appregistry-service:
   deploymentType: hybrid_cloud
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
+
+#orientMe
+global:
+  onPrem: true
+  image:
+    repository: ${ECRRegistry}/connections
+
+itm-services:
+  service:
+    nodePort: 31100
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
 
 orient-web-client:
   service:
     nodePort: 30001
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
+
+orient-analysis-service:
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
 
 orient-indexing-service:
   indexing:
@@ -138,6 +189,24 @@ orient-indexing-service:
   elasticsearch:
     host: $ESHost
     port: $ESPort
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
+
+solr-basic:
+  namespace: $CNXNS
+  replicaCount: $SolrRepCount
+
+zookeeper:
+  namespace: $CNXNS
+  replicaCount: $ZooRepCount
+
+middleware-graphql:
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
+
+userprefs-service:
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
 
 orient-retrieval-service:
   retrieval:
@@ -145,25 +214,58 @@ orient-retrieval-service:
   elasticsearch:
     host: $ESHost
     port: $ESPort
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
 
-itm-services:
-  service:
-    nodePort: 31100
+people-scoring:
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
+
+people-datamigration:
+  namespace: $CNXNS
+  replicaCount: 1 #default to 1
+
+people-relationship:
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
 
 mail-service:
   service:
     nodePort: 32721
+  namespace: $CNXNS
+  replicaCount: $rCountSmall # default to 1
+
+people-idmapping:
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
 
 community-suggestions:
   service:
     nodePort: 32200
+  namespace: $CNXNS
+  replicaCount: $rCountNormal
 
-nodeAffinityRequired: $nodeAffinityRequired
-deploymentType: hybrid_cloud
+#ingress controller
+controller:
+  service:
+    enableHttps: false
+  ingressClass: nginx
+ingress:
+  hosts:
+    domain: ${GlobalDomainName}
 
 tcp:
   "30099": connections/elasticsearch:9200
   "30379": connections/haproxy-redis:6379
+
+#ingress controller & mw-proxy & sanity & sanity-watcher !!! overwrite by --set replicaCount='1'
+replicaCount: $rCountNormal
+
+#mw-proxy
+minReplicas: $minCount
+maxReplicas: $maxCount
+
+#sanity
 
 EOF2
 

@@ -30,19 +30,22 @@ cat > ~/installsettings.sh <<EOF
 installversion=65
 installsubversion=10
 
+# Connections namespace and install size
+CNXNS=connnections
+CNXSize=small  # small -> run only 1 replica per pod
 
 # Storage settings (minikube uses 'standard' by default)
 storageclass=standard
 
 # ES settings
-useStandaloneES=1
+useStandaloneES=0
 standaloneESHost="Hostname of your ES Server endpoint"
 standaloneESPort=443
 useSolr=0
 
 # Docker Registry 
 # hostname:port (when you have an external registry update this values)
-ECRRegistry=$HOSTNAME:31456
+ECRRegistry=control-plane.minikube.internal:31456
 
 # Certificte related settings (when you want to use certbot for certificate retrieval)
 acme_email="your enterprise email"
@@ -96,7 +99,13 @@ bash beas-cnx-cloud/common/scripts/write_cp_config.sh
 
 All HCL Connections related services are deployed inside the namespace `connections` per default. See the HCL documentation in case you want to change this default.
 
-To create the namespace run: `kubectl create namespace connections`
+To create the namespace run: 
+
+```
+. ~/installsettings.sh
+kubectl create namespace $CNXNS
+
+```
 
  
 ## 3.4 Create persistent volumes
@@ -131,8 +140,8 @@ The es-pvc-backup persistent volume must be placed on a NFS file share as the lo
 # install_cp.yaml configuration file:
 
 helm upgrade connections-volumes \
-  ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
-  -i -f ./install_cp.yaml --namespace connections
+  ~/beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
+  -i -f ~/install_cp.yaml --namespace $CNXNS
 
 
 
@@ -143,7 +152,7 @@ helm upgrade connections-volumes \
 
 # Create ElasticSearch Volumes on the default storage (gp2)
 helm upgrade connections-volumes \
-  ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
+  ~/beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
   --set customizer.enabled=true \
   --set solr.enabled=false \
   --set zk.enabled=false \
@@ -152,7 +161,7 @@ helm upgrade connections-volumes \
 
 # Create Solr, Zookeeper and MongoDB Volumes on the custom storage (aws-efs) 
 helm upgrade connections-volumes \ 
-  ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
+  ~/beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
   --set storageClassName=$storageclass \
   --set customizer.enabled=true \
   --set solr.enabled=true \
@@ -166,7 +175,7 @@ As the ElasticSearch was installed on the default storage class which does not s
 
 ```
 # Delete existing PVC
-kubectl -n connections delete pvc es-pvc-backup
+kubectl -n $CNXNS delete pvc es-pvc-backup
 
 # Create new PVC
 cat << EOF > create_es_backup.yaml
@@ -174,7 +183,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: es-pvc-backup2
-  namespace: connections
+  namespace: $CNXNS
 spec:
   accessModes:
   - ReadWriteMany
@@ -191,7 +200,7 @@ kubectl create -f create_es_backup.yaml
 In case you want to move your ElasticSearch data from EFS to EBS, you can use the process [Migrate ES Data from EFS to EBS](migrate_es_data.html).
 
 
-To check the creation run: `kubectl -n connections get pvc`
+To check the creation run: `kubectl -n $CNXNS get pvc`
 
 Make sure the status of the created pvc is "Bound"
 

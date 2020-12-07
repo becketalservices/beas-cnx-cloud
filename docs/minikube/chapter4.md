@@ -8,12 +8,12 @@ All shown commands use as much default values as possible. Check HCL documentati
 
 The commands use the configuration file install_cp.yaml created in [3.2 Create configuration files for helm](chapter3.html#31-create-configuration-files-for-helm).
 
-** IMPORTATNT FOR PROVE OF CONCEPT - MINIMAL INSTALL**  
-** after each deployment, scale the number of pods down to 1 to save resources.**  
-run:  
+**IMPORTATNT FOR PROVE OF CONCEPT - MINIMAL INSTALL**  
+**Make sure you have set "CNXSize=small" in your installsettings.sh so that the replicaCount of all features was set to 1 in the install_cp.yaml file**
 
+Load the common configuration:
 ```
-bash beas-cnx-cloud/common/scripts/scale.sh 1
+. ~/installsettings.sh
 
 ```
 
@@ -29,7 +29,7 @@ In case you currently set up only parts of the infrastructure but plan to extend
 ```
 ## Bootstrap
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/bootstrap*)
-helm upgrade bootstrap $helmchart -i -f ./install_cp.yaml --namespace connections
+helm upgrade bootstrap $helmchart -i -f ~/install_cp.yaml --namespace $CNXNS
 
 ```
 
@@ -41,14 +41,14 @@ helm upgrade bootstrap $helmchart -i -f ./install_cp.yaml --namespace connection
 ```
 ## Connections-Env
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/connections-env*)
-helm upgrade connections-env $helmchart -i -f ./install_cp.yaml --namespace connections
+helm upgrade connections-env $helmchart -i -f ~/install_cp.yaml --namespace $CNXNS
 
 ```
 
 To review the generated configmap run:
 
 ```
-kubectl get configmap connections-env -o yaml -n connections
+kubectl get configmap connections-env -o yaml -n $CNXNS
 
 ```
 
@@ -62,17 +62,17 @@ kubectl get configmap connections-env -o yaml -n connections
 ```
 ## Component Pack infrastructure
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/infrastructure*)
-helm upgrade infrastructure $helmchart -i -f ./install_cp.yaml --namespace connections
+helm upgrade infrastructure $helmchart -i -f ~/install_cp.yaml --namespace $CNXNS
 
 ```
 
-Watch the container creation by issuing the command: `watch -n 10 kubectl -n connections get pods`  
+Watch the container creation by issuing the command: `watch -n 10 kubectl -n $CNXNS get pods`  
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 2-3 minutes to complete.
 
 To check that redis cluster is working as expected, run:
 
 ```
-kubectl exec -it redis-server-0 -n connections -- bash /usr/bin/runRedisTools.sh --getAllRoles
+kubectl exec -it redis-server-0 -n $CNXNS -- bash /usr/bin/runRedisTools.sh --getAllRoles
 
 ```
 
@@ -99,11 +99,11 @@ redis-server-2.redis-server.connections.svc.cluster.local: slave
 ```
 ## Elasticsearch
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/elasticsearch*)
-helm upgrade elasticsearch $helmchart -i -f ./install_cp.yaml --namespace connections
+helm upgrade elasticsearch $helmchart -i -f ~/install_cp.yaml --namespace $CNXNS
 
 ```
 
-Check if all pods are running: `watch -n 10 'kubectl -n connections get pods | grep "^es-"'`
+Check if all pods are running: `watch -n 10 'kubectl -n $CNXNS get pods | grep "^es-"'`
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 3 minutes to complete.
 
 
@@ -120,11 +120,11 @@ When you do not use ISAM:
 ```
 ## Orient Me
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/orientme*)
-helm upgrade orientme $helmchart -i -f ./install_cp.yaml --namespace connections
+helm upgrade orientme $helmchart -i -f ~/install_cp.yaml --namespace $CNXNS
 
 ```
 
-Watch the container creation by issuing the command: `watch -n 10 kubectl -n connections get pods`  
+Watch the container creation by issuing the command: `watch -n 10 kubectl -n $CNXNS get pods`  
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes up to 10 minutes to complete.
 
 To shut down the solr and zookeeper services to save resources run:
@@ -147,11 +147,11 @@ bash beas-cnx-cloud/common/scripts/solr.sh 0
 ```
 ## CNX Ingress Controller
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/cnx-ingress-*)
-helm upgrade cnx-ingress $helmchart -i -f ./install_cp.yaml --namespace connections
+helm upgrade cnx-ingress $helmchart -i -f ~/install_cp.yaml --namespace $CNXNS
 
 ```
 
-Watch the container creation by issuing the command: `watch -n 10 'kubectl -n connections get pods | grep "^cnx-"'`  
+Watch the container creation by issuing the command: `watch -n 10 'kubectl -n $CNXNS get pods | grep "^cnx-"'`  
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes up to 1 minutes to complete.
 
 
@@ -167,11 +167,11 @@ Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 
 ```
 ## Customizer (mw-proxy)
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/mw-proxy*)
-helm upgrade mw-proxy $helmchart -i -f ./install_cp.yaml --namespace connections
+helm upgrade mw-proxy $helmchart -i -f ~/install_cp.yaml --namespace $CNXNS
 
 ```
 
-Check if all pods are running: `watch -n 10 'kubectl -n connections get pods | grep "^mw-"'`
+Check if all pods are running: `watch -n 10 'kubectl -n $CNXNS get pods | grep "^mw-"'`
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 1 minute to complete.
 
 #### Add Customizer files to persistent storage
@@ -181,7 +181,7 @@ To do so, run:
 
 ```
 for file in microservices_connections/hybridcloud/support/customizer/*; do
-  kubectl cp -n connections $file $(kubectl get pods -n connections | grep mw-proxy | awk 'NR==1{print $1}'):/mnt;
+  kubectl cp -n $CNXNS $file $(kubectl get pods -n $CNXNS | grep mw-proxy | awk 'NR==1{print $1}'):/mnt;
 done
 
 ```
@@ -207,7 +207,7 @@ helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/kudos-boards-cp-
 ### CNX 6.5.0.1 - the delivered helm chart has a bug. Download the new one:
 curl -LO https://docs.kudosapps.com/assets/config/kubernetes/kudos-boards-cp-1.1.1.tgz
 helmchart=$(ls kudos-boards-cp-1*)
-helm upgrade kudos-boards-cp $helmchart -i -f ./boards-cp.yaml --namespace connections --recreate-pods
+helm upgrade kudos-boards-cp $helmchart -i -f ./boards-cp.yaml --namespace $CNXNS --recreate-pods
 
 ## This commands force the deletion of the standard PVC and creates custom one.
 kctl delete pvc kudos-boards-minio-claim
@@ -217,7 +217,7 @@ bash beas-cnx-cloud/AWS/scripts/fix_policy_all.sh
 
 ```
 
-Check if all pods are running: `watch -n 10 'kubectl -n connections get pods | grep "^kudos-"'`
+Check if all pods are running: `watch -n 10 'kubectl -n $CNXNS get pods | grep "^kudos-"'`
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 3 minute to complete.
 
 
@@ -263,14 +263,19 @@ Follow the tutorial [Tutorial: Deploy the Kubernetes Web UI (Dashboard)](https:/
 ```
 ## Sanity dashboard
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/sanity-[0-9]*)
-helm upgrade sanity $helmchart -i -f ./install_cp.yaml --namespace connections
+helm upgrade sanity $helmchart -i -f ~/install_cp.yaml --namespace $CNXNS
 
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/sanity-watcher*)
-helm upgrade sanity-watcher $helmchart -i -f ./install_cp.yaml --namespace connections
+helm upgrade sanity-watcher $helmchart -i -f ~/install_cp.yaml --set replicaCount='1' --namespace $CNXNS 
+
+## scale sanity down to 1 for minimal setup. 
+## sanity-watcher makes shure that santy runns always with 3 pods by using helm.
+## modification of helm chart does not help in this case.
+kubectl -n $CNXNS scale deployment sanity --replicas=1
 
 ```
 
-Check if all pods are running: `watch -n 10 'kubectl -n connections get pods | grep "^sanity-"'`
+Check if all pods are running: `watch -n 10 'kubectl -n $CNXNS get pods | grep "^sanity-"'`
 
 To access your sanity dashboard, you can use the kubernetes proxy on your local desktop.
 

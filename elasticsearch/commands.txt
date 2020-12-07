@@ -8,7 +8,7 @@ Delete Index:
 ./esdelete.sh ${index}?pretty
 
 Update Replica Count
-./esput.sh "icmetrics_a_2020_1h/_settings?pretty" rem_replica.json
+./esput.sh "orient-me-collection/_settings?pretty" rem_replica.json
 
 #### Templates  #####
 Get list of current templates:
@@ -22,10 +22,10 @@ Create new index (with default settings)
 
 
 Get Node information
-./esget.sh "_nodes"
-./esget.sh "_nodes/os"
-./esget.sh "_nodes/jvm"
-./esget.sh "_nodes/plugins"
+./esget.sh "_nodes?pretty"
+./esget.sh "_nodes/os?pretty"
+./esget.sh "_nodes/jvm?pretty"
+./esget.sh "_nodes/plugins?pretty"
 
 https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-nodes-info.html
 

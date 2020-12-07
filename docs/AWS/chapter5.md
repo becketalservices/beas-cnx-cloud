@@ -273,7 +273,7 @@ helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/sanity-[0-9]*)
 helm upgrade sanity $helmchart -i -f ./install_cp.yaml --namespace connections
 
 helmchart=$(ls microservices_connections/hybridcloud/helmbuilds/sanity-watcher*)
-helm upgrade sanity-watcher $helmchart -i -f ./install_cp.yaml --namespace connections
+helm upgrade sanity-watcher $helmchart -i -f ./install_cp.yaml --set replicaCount='1' --namespace connections
 
 ```
 

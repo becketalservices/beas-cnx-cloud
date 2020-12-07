@@ -9,5 +9,5 @@ if [ "$ESKEY" -a "$ESCRT" ]; then
   CERT="-E ${ESCRT} --key ${ESKEY}"
 fi
 
-curl -k $CERT "${ESURL}/$1"
+curl $CURLOPTS -k $CERT "${ESURL}/$1"
 

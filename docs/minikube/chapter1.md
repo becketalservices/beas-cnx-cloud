@@ -17,8 +17,8 @@ Power on your server wiht CentOS 7.8
 
 ```
 sudo yum -y install epel-release
-sudo yum update
-sudo yum -y install socat vim nano unzip bind-utils
+sudo yum -y update
+sudo yum -y install socat vim nano zip unzip bind-utils
 
 ```
 
@@ -27,7 +27,6 @@ sudo yum -y install socat vim nano unzip bind-utils
 
 
 ```
-sudo yum -y update
 sudo yum -y install git
 git clone https://github.com/becketalservices/beas-cnx-cloud.git
 
@@ -35,7 +34,7 @@ git clone https://github.com/becketalservices/beas-cnx-cloud.git
 
 ### 1.1.3 Install kubectl
 
-o install kubectl:
+install kubectl:
 
 ```
 cat <<EOF > /tmp/kubernetes.repo
@@ -60,7 +59,7 @@ Download and extract the helm binaries:
 
 ```
 # CP 6.5.0.1 - use latest availave v2 release
-curl -L -O "https://get.helm.sh/helm-v2.16.6-linux-amd64.tar.gz"
+curl -L -O "https://get.helm.sh/helm-v2.17.0-linux-arm64.tar.gz"
 
 tar -zxvf helm*
 sudo mv $HOME/linux-amd64/helm /usr/bin/helm
@@ -87,6 +86,9 @@ sudo bash $HOME/beas-cnx-cloud/Azure/scripts/install_docker.sh
 # to check your docker version run
 sudo docker version
 
+# grant current user access to docker daemon (logoff / login required to activate)
+sudo usermod -a -G docker $USER
+
 ```
 
 Check the output of the script.
@@ -101,7 +103,7 @@ sudo amazon-linux-extras install -y docker
 sudo yum -y install docker
 sudo systemctl enable docker
 sudo systemctl start docker 
-sudo usermod -a -G docker centos
+sudo usermod -a -G docker $USER
 
 # Log off / Log On to your ssh session to be able to use docker
 ```
@@ -112,7 +114,9 @@ sudo usermod -a -G docker centos
 
 
 ```
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+chmod +x minikube
+sudo mv minikube /usr/bin/
 
 ```
 
