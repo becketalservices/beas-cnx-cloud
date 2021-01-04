@@ -1,7 +1,35 @@
 #!/bin/bash
-#version=202012071630
+#version=202101041040
 
 . ~/installsettings.sh
+
+# create subdirecoty
+if [ ! -d "$HOME/cp_config" ]; then
+  mkdir -p "$HOME/cp_config"
+fi
+
+if [ ! -d "$HOME/cp_config" ]; then
+  echo "ERROR: Configuration directory "$HOME/cp_config" was not created."
+  exit 1
+fi
+
+if [ -z "$namespace" ]; then
+  $namespace=connections
+fi
+
+if [ "$CNXSize" == "small" ]; then
+  rCountNormal=1
+  rCountSmall=0
+  minCount=1
+  maxCount=3
+  bCountNormal=1
+else
+  rCountNormal=3
+  rCountSmall=1
+  minCount=3
+  maxCount=3
+  bCountNormal=2
+fi
 
 # Write global ingress controller configuration
 
@@ -9,11 +37,11 @@ if [ "$GlobalIngressPublic" != "1" ]; then
   annotationPrivate="      service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0"
 fi
 
-cat << EOF1 > global-ingress.yaml
+cat << EOF1 > "$HOME/cp_config/global-ingress.yaml"
 #Global Ingress configuration
 
 controller:
-  replicaCount: 3
+  replicaCount: $rCountNormal 
   ingressClass: global-nginx
   config:
     proxy-body-size: "512m"
@@ -35,6 +63,7 @@ if [ "$useStandaloneES" == "1" ]; then
   ESHost=$standaloneESHost
   ESPort=$standaloneESPort
   ESPVC=false
+  ESPVC7=false
   if [ "$standaloneESHost" -a "$standaloneESPort" ]; then
     ESIndexing=true
   else
@@ -44,27 +73,17 @@ else
   # use integrated ES Server - values default from values.yaml in orientme helmchart
   ESHost=elasticsearch
   ESPort=9200
-  ESPVC=true
+  if [ $installversion -ge 70 ]; then
+    ESPVC=false
+    ESPVC7=true
+  else 
+    ESPVC=true
+    ESPVC7=false
+  fi
   ESIndexing=true
 fi
 
-if [ "$CNXSize" == "small" ]; then
-  rCountNormal=1
-  rCountSmall=0
-  minCount=1
-  maxCount=3
-else
-  rCountNormal=3
-  rCountSmall=1
-  minCount=3
-  maxCount=3
-fi
-
-if [ -z "$CNXNS" ]; then
-  CNXNS=connections
-fi
-
-if [ "$useSolr" == "0" ]; then
+if [ "$useSolr" == "0" -o "$installversion" -ge 70 ]; then
   SolrPVC=false
   SolrIndexing=false
   ESRetrieval=true
@@ -78,12 +97,18 @@ else
   ZooRepCount=$rCountNormal
 fi
 
+if [ "$MSTeams" == "1" ]; then
+  MSTeamsEnabled="true"
+else
+  MSTeamsEnabled="false"
+fi
+
 # Write Component Pack configuration
-cat << EOF2 > install_cp.yaml
+cat << EOF2 > "$HOME/cp_config/install_cp.yaml"
 #Component Pack configuration
 
 #persistent disks & bootstrape & connections-env & elasticsearch & ingress controller & mw-proxy & sanity
-namespace: $CNXNS
+namespace: $namespace
 
 #Persistent Disks
 storageClassName: $storageclass
@@ -95,6 +120,8 @@ zk:
   enabled: $SolrPVC
 es:
   enabled: $ESPVC
+es7:
+  enabled: $ESPVC7
 customizer:
   enabled: true
 
@@ -117,6 +144,40 @@ ic:
   interserviceConnectionsPort: 443
   interserviceScheme: https
 createSecret: false
+integrations:
+  msgraph:
+    auth:
+      endpoint: '$MSGraph_Auth_Endpoint'
+    authorize:
+      endpoint: '$MSGraph_Authorize_Endpoint'
+    client:
+      id: '$MSGraph_Client_ID'
+      secret: '$MSGraph_Client_Secret'
+    meta:
+      endpoint: '$MSGraph_Meta_Endpoint'
+    redirect:
+      uri: '$MSGraph_Redirect_URI'
+    secret:
+      name: '$MSGraph_Secret_Name'
+    token:
+      endpoint: '$MSGraph_Token_Endpoint'
+  msteams:
+    auth:
+      schema: '$MSTeams_Auth_Schema'
+    client:
+      id: '$MSTeams_Client_ID'
+      secret: '$MSTeams_Client_Secret'
+    enabled: $MSTeamsEnabled 
+    redirect:
+      uri: '$MSTeams_Redirect_URI'
+    tenant:
+      id: '$MSTeams_Tenant_ID'
+    share:
+      service:
+        endpoint: '$MSTeams_Share_Service_Endpoint'
+      ui:
+        files:
+          api: '$MSTeams_Share_UI_Files_API'
 
 #elasticsearch
 nodeAffinityRequired: false
@@ -133,32 +194,77 @@ master:
 
 #infrastructure
 haproxy:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 redis:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 redis-sentinel:
   env:
     numRedisServerReplicaCount: $rCountNormal
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 mongodb:
   createSecret: false
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 appregistry-client:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 appregistry-service:
   deploymentType: hybrid_cloud
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
+
+#msteams
+teams-share-ui :
+  namespace: $namespace
+  maxReplicas: $maxCount
+  minReplicas: $minCount 
+  replicaCount: $rCountNormal
+
+teams-share-service :
+  namespace: $namespace
+  maxReplicas: $maxCount 
+  minReplicas: $minCount
+  replicaCount: $rCountNormal
+
+teams-tab-api :
+  namespace: $namespace
+  scaler:
+    maxReplicas: $maxCount 
+    minReplicas: $minCount
+
+teams-tab-ui :
+  namespace: $namespace
+  scaler:
+    maxReplicas: $maxCount
+    minReplicas: $minCount
+
+
+#tailored-exp
+admin-portal :
+  namespace: $namespace
+  maxReplicas: $maxCount 
+  minReplicas: $minCount 
+  replicaCount: $rCountNormal
+
+te-creation-wizard :
+  namespace: $namespace
+  maxReplicas: $maxCount 
+  minReplicas: $minCount
+  replicaCount: $rCountNormal
+
+community-template-service :
+  namespace: $namespace
+  maxReplicas: $maxCount 
+  minReplicas: $minCount
+  replicaCount: 1
 
 #orientMe
 global:
@@ -169,17 +275,17 @@ global:
 itm-services:
   service:
     nodePort: 31100
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 orient-web-client:
   service:
     nodePort: 30001
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 orient-analysis-service:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 orient-indexing-service:
@@ -189,23 +295,23 @@ orient-indexing-service:
   elasticsearch:
     host: $ESHost
     port: $ESPort
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 solr-basic:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $SolrRepCount
 
 zookeeper:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $ZooRepCount
 
 middleware-graphql:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 userprefs-service:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 orient-retrieval-service:
@@ -214,35 +320,35 @@ orient-retrieval-service:
   elasticsearch:
     host: $ESHost
     port: $ESPort
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 people-scoring:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 people-datamigration:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: 1 #default to 1
 
 people-relationship:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 mail-service:
   service:
     nodePort: 32721
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountSmall # default to 1
 
 people-idmapping:
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 community-suggestions:
   service:
     nodePort: 32200
-  namespace: $CNXNS
+  namespace: $namespace
   replicaCount: $rCountNormal
 
 #ingress controller
@@ -253,6 +359,7 @@ controller:
 ingress:
   hosts:
     domain: ${GlobalDomainName}
+multiDomainEnabled: false
 
 tcp:
   "30099": connections/elasticsearch:9200
@@ -269,7 +376,57 @@ maxReplicas: $maxCount
 
 EOF2
 
+# Write santiy_watcher.yaml
+cat << EOF4 > "$HOME/cp_config/sanity_watcher.yaml"
+#Component Pack configuration - sanity watcher
+
+#sanity-watcher
+namespace: $namespace
+
+image:
+  repository: ${ECRRegistry}/connections
+
+#sanity-watcher
+replicaCount: 1
+EOF4
+
+# Write outlook-addin.yml
+cat << EOF5 > "$HOME/cp_config/outlook-addin.yml"
+#Component Pack configuration - outlook-addin
+
+namespace: $namespace
+
+image:
+  repository: ${ECRRegistry}/connections
+
+env:
+  # The URL of your Connections envrionment without a trailing slash. Do NOT end with '/' 
+  CONNECTIONS_URL: https://$ic_front_door
+  # The path to where the addin app is being served, relative to the CONNECTIONS_URL. Do NOT start or end with '/'
+  CONTEXT_ROOT: outlook-addin
+  # A URL that a user can go to for support of the addin.
+  SUPPORT_URL: "$Outlook_Support_URL" 
+  # Client ID (aka. app ID) used when registering oauth app in Connections
+  CONNECTIONS_CLIENT_ID: connections-outlook-desktop
+  # Client secret generated by Connections when registering oauth app
+  CONNECTIONS_CLIENT_SECRET: "$Outlook_Client_Secret"
+  # A custom name for the add-in.
+  CONNECTIONS_NAME: $name
+ingress:
+  hosts:
+    - host: "*.${GlobalDomainName}" 
+      paths: []
+
+EOF5
+
+
 # Wirite Kudos Boards configuration
+if [ $installversion == "70" ]; then
+  if [ $installsubversion == "00" ]; then
+    valid=1
+    tag=20201113-192158
+  fi
+fi
 if [ $installversion == "65" ]; then
   if [ $installsubversion == "00" ]; then
     valid=1
@@ -281,12 +438,25 @@ if [ $installversion == "65" ]; then
   fi
 fi
 
+
 if [ "$valid" != "1" ]; then
   echo "Not supported CP Version for Boards."
   exit 1
 fi
 
-cat << EOF3 > boards-cp.yaml
+if [ ! "$KudosPublicImages" == 1 -a "$installversion" -eq 70 ]; then
+  kudosImage="  image:"
+  kudosMinio="    name: kudosboards-minio"
+  kudosWebfront="    name: kudosboards-webfront"
+  kudosCore="    name: kudosboards-core"
+  kudosLicence="    name: kudosboards-licence"
+  kudosUser="    name: kudosboards-user"
+  kudosApp="    name: kudosboards-boards"
+  kudosProvider="    name: kudosboards-provider"
+  kudosNotification="    name: kudosboards-notification"
+fi
+
+cat << EOF3 > "$HOME/cp_config/boards-cp.yaml"
 # Please read every variable and replace with appropriate value
 # For details of variable meanings, please see https://docs.kudosapps.com/boards/cp/
 
@@ -301,8 +471,11 @@ minio:
   useDockerHub: false
   nfs:
     server: 192.168.0.1
+$kudosImage
+$kudosMinio
     
 webfront:
+  replicaCount: $bCountNormal
   env:
     API_GATEWAY: https://${ic_front_door}/api-boards
   ingress:
@@ -311,8 +484,11 @@ webfront:
     # kubectl get ingresses --all-namespaces
     hosts:
       - "*.${GlobalDomainName}"
+$kudosImage
+$kudosWebfront
 
 core:
+  replicaCount: $bCountNormal
   env:
     LOGGER_DEBUG: user
     NOTIFIER_EMAIL_HOST: ${ic_internal}
@@ -328,11 +504,16 @@ core:
     # kubectl get ingresses --all-namespaces
     hosts:
       - "*.${GlobalDomainName}"
+$kudosImage
+$kudosCore
 
 licence:
+  replicaCount: $bCountNormal
   env:
     # Register your Organisation and download your Free 'Activities Plus' licence key from store.kudosapps.com
     LICENCE: ${KudosBoardsLicense} 
+$kudosImage
+$kudosLicence
 
 # https://docs.kudosapps.com/boards/msgraph/teams-on-prem/
 # Uncomment/configure the following 3 lines if you are using this Kudos Boards deployment from Microsoft Teams
@@ -341,6 +522,7 @@ licence:
 #     MSGRAPH_TEAMS_APP_ID: app-id-shown-in-teams-url
 
 user:
+  replicaCount: $bCountNormal
   env:
     LOGGER_DEBUG: auth,client
     CONNECTIONS_NAME: HCL Connections
@@ -348,8 +530,23 @@ user:
     CONNECTIONS_CLIENT_ID: kudosboards
     CONNECTIONS_CLIENT_SECRET: ${KudosBoardsClientSecret} 
     CONNECTIONS_ADMINS: "[\"${ic_admin_user}\"]"
+$kudosImage
+$kudosUser
 
+app:
+  replicaCount: $bCountNormal
+$kudosImage
+$kudosApp
 
+provider:
+  replicaCount: $bCountNormal
+$kudosImage
+$kudosProvider
+
+notification:
+  replicaCount: $bCountNormal
+$kudosImage
+$kudosNotification
 
 migration:
   env:

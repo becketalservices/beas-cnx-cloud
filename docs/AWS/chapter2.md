@@ -14,8 +14,12 @@ Most of the scripts and commands reference this file.
 ```
 # Write our environment settings
 cat > ~/installsettings.sh <<EOF
+# Global
+installversion=70
+
 # Network
 GlobalIngressPublic=1
+
 # EKS settings
 EKSName="cluster name e.g. CNX_Test_EKS" 
 EKSNodeType=t3a.xlarge
@@ -49,19 +53,46 @@ acme_email="your enterprise email"
 use_lestencrypt_prod="[true/false]"
 
 # Component Pack
+namespace=connections
 GlobalDomainName="global domain name"
 ic_admin_user="admin_user"
 ic_admin_password='admin_password'
 ic_internal="ic_internal"
 ic_front_door="ic_front_door"
 master_ip="master_ip"
-# "elasticsearch,customizer,orientme,kudos-boards"
+# 6: "elasticsearch,customizer,orientme,kudos-boards"
+# 7: "orientme,customizer,elasticsearch,elasticsearch7,teams,tailored-exp,cs_lite,ic360,cnx-mso-plugin,kudosboards"
 starter_stack_list=""
 # for test environments with just one node or no taint nodes, set to false.
 nodeAffinityRequired=false
 useSolr=0
 
+# MSTeams
+MSTeams=0
+MSTeams_Tenant_ID=""
+MSTeams_Client_ID=""
+MSTeams_Client_Secret=""
+MSTeams_Auth_Schema=0
+MSTeams_Share_Service_Endpoint="/teams-share-service"
+MSTeams_Share_UI_Files_API="/files/basic/api"
+MSTeams_Redirect_URI=""
+
+MSGraph_Client_ID=""
+MSGraph_Client_Secret=""
+MSGraph_Secret_Name=""
+MSGraph_Auth_Endpoint="https://login.microsoftonline.com/common/"
+MSGraph_Meta_Endpoint="v2.0/.well-known/openid-configuration"
+MSGraph_Authorize_Endpoint="oauth2/v2.0/authorize"
+MSGraph_Token_Endpoint="oauth2/v2.0/token"
+MSGraph_Redirect_URI=""
+
+Outlook_Client_Secret=""
+Outlook_Support_URL="https://help.hcltechsw.com/connections/v7/connectors/enduser/c_ms_plugins_add_in_outlook.html"
+
 # KUDOS
+KudosPublicImages=1
+KudosDockerAccount=""
+KudosDockerSecret=""
 KudosBoardsLicense=""
 KudosBoardsClientSecret="this_value_must_be_filled_in_when_connections_is_up_and_running"
 db2host="activites db host"
@@ -104,9 +135,9 @@ kubectl get svc
 
 ```
 
-## 2.3 Configure Helm on your EKS environment
+## 2.3 Configure Helm on your EKS environment (for Helm v2.x only)
  
-**Create a kubernetes service account**
+**Create a kubernetes service account Helm v2.x only**
 
 As we have rbac enabled on our cluster, we need to create an service account so that helm can act on our cluster.
 
@@ -191,7 +222,9 @@ done
 
 ### 2.5.2 Create the efs provisioner
 
-replace the file.system.id with your id and the aws.region by your region.  
+**The helm chart has been depricated but I have not yet found a suitable replacement.**
+
+Replace the file.system.id with your id and the aws.region by your region.  
 run the command:
 
 ```
@@ -205,7 +238,16 @@ fsid=$efsid
 region=$AWSRegion
 
 # Use the official helm chart to install:
-helm install stable/efs-provisioner \
+# !!! command differs on helm version
+
+# Helm v2
+helm install stable/efs-provisioner --name efs-provisioner \
+  --set efsProvisioner.efsFileSystemId=$fsid \
+  --set efsProvisioner.awsRegion=$region \
+  --set efsProvisioner.storageClass.name=$storageclass
+
+# Helm v3
+helm install efs-provisioner stable/efs-provisioner \
   --set efsProvisioner.efsFileSystemId=$fsid \
   --set efsProvisioner.awsRegion=$region \
   --set efsProvisioner.storageClass.name=$storageclass

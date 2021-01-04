@@ -9,8 +9,14 @@ fi
 
 touch "${SCRIPT_DIR}/settings.sh"
 
-if [ -z "$CNXNS" ]; then
-  CNXNS=connections
+if [ -z "$namespace" ]; then
+  namespace=connections
+fi
+
+if [ -n "$installversion" -a "$installversion" -lt 70 ]; then
+  secretName=elasticsearch-secret
+else
+  secretName=elasticsearch-7-secret
 fi
 
 if [ "$useStandaloneES" != "1" ]; then
@@ -34,11 +40,11 @@ if [ "$useStandaloneES" != "1" ]; then
     fi
   fi
   #get es key from secrets
-  $kubecmd get secret elasticsearch-secret -n $CNXNS -o "jsonpath={.data.elasticsearch-metrics\.p12}" | base64 -d > elasticsearch-metrics.p12
-  $kubecmd get secret elasticsearch-secret -n $CNXNS -o=jsonpath="{.data['chain-ca\.pem']}" | base64 -d > chain-ca.pem
+  $kubecmd get secret $secretName -n $namespace -o "jsonpath={.data.elasticsearch-metrics\.p12}" | base64 -d > elasticsearch-metrics.p12
+  $kubecmd get secret $secretName -n $namespace -o=jsonpath="{.data['chain-ca\.pem']}" | base64 -d > chain-ca.pem
 
   # get key password from secrets
-  export password=$($kubecmd get secret elasticsearch-secret -n $CNXNS  -o "jsonpath={.data.elasticsearch-key-password\.txt}" |base64 -d)
+  export password=$($kubecmd get secret $secretName -n $namespace  -o "jsonpath={.data.elasticsearch-key-password\.txt}" |base64 -d)
 
   openssl pkcs12 -passin env:password -in elasticsearch-metrics.p12 -out elasticsearch-metrics.key.pem -nocerts -nodes
   openssl pkcs12 -passin env:password -in elasticsearch-metrics.p12 -out elasticsearch-metrics.crt.pem -clcerts -nokeys

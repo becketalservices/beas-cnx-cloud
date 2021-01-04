@@ -6,9 +6,9 @@ controller="connections-nginx-ingress-controller connections-nginx-ingress-contr
 for c in $controller; do
   echo "Check for Controller: $c"
  
-  erg=$(kubectl get services --namespace connections $c)
+  erg=$(kubectl get services --namespace $namespace $c)
   if [ $? -eq 0 ]; then
-    lbhost=$(kubectl get services --namespace connections $c --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+    lbhost=$(kubectl get services --namespace $namespace $c --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
     if [ $? -eq 0 -a -n "$lbhost" ]; then
       echo "LB Hostname: $lbhost"
       internal=$(echo $lbhost | grep internal)

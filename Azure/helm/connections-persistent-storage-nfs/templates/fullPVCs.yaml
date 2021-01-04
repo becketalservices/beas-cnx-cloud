@@ -185,6 +185,113 @@ spec:
       storage: {{ .Values.es.resources.requests.storage }}
 ---
 {{- end }}
+{{- if .Values.es7.enabled }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: es-pvc-backup-7
+  labels:
+    component: elasticsearch7
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ .Values.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.es7.resources.requests.storage }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: es-pvc-es-master-7-0
+  labels:
+    component: elasticsearch7
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.es7.resources.requests.storage }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: es-pvc-es-master-7-1
+  labels:
+    component: elasticsearch7
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.es7.resources.requests.storage }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: es-pvc-es-master-7-2
+  labels:
+    component: elasticsearch7
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.es7.resources.requests.storage }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: es-pvc-es-data-7-0
+  labels:
+    component: elasticsearch7
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.es7.resources.requests.storage }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: es-pvc-es-data-7-1
+  labels:
+    component: elasticsearch7
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.es7.resources.requests.storage }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: es-pvc-es-data-7-2
+  labels:
+    component: elasticsearch7
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: {{ .Values.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.es7.resources.requests.storage }}
+---
+{{- end }}
 {{- if .Values.customizer.enabled }}
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -200,3 +307,4 @@ spec:
       storage: {{ .Values.customizer.resources.requests.storage }}
 ---
 {{- end }}
+

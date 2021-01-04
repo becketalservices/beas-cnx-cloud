@@ -31,7 +31,7 @@ installversion=65
 installsubversion=10
 
 # Connections namespace and install size
-CNXNS=connnections
+namespace=connnections
 CNXSize=small  # small -> run only 1 replica per pod
 
 # Storage settings (minikube uses 'standard' by default)
@@ -82,9 +82,14 @@ EOF
 To simplify the resource creation, many settings can be placed into yaml files. Theses files will then be referenced by the various installation commands.  
 Currently 3 different configuration files can be created automatically.  
 
+**Currently the script create the single domain configuration as I have not yet understood what mutlti domain means.**
+
+**Starting with CP7.0 the configuration files are placed into $HOME/cp_config**
+
 1. global-ingress.yaml - Used by the creation of the global-ingress-controller
 2. install_cp.yaml - Used by the creations of the component pack helm charts
-3. boards-cp.yaml - Used by the creation of the activities plus helm chart
+3. sanity_watcher.yaml - Used for the sanity watcher so that the replica count is always 1. (CP 6.x only)
+4. boards-cp.yaml - Used by the creation of the activities plus helm chart
 
 To create these files make sure, your `installsettings.sh` file is up to date, then run:
 
@@ -103,7 +108,7 @@ To create the namespace run:
 
 ```
 . ~/installsettings.sh
-kubectl create namespace $CNXNS
+kubectl create namespace $namespace
 
 ```
 
@@ -141,7 +146,7 @@ The es-pvc-backup persistent volume must be placed on a NFS file share as the lo
 
 helm upgrade connections-volumes \
   ~/beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
-  -i -f ~/install_cp.yaml --namespace $CNXNS
+  -i -f ~/cp_config/install_cp.yaml --namespace $namespace
 
 
 
@@ -175,7 +180,7 @@ As the ElasticSearch was installed on the default storage class which does not s
 
 ```
 # Delete existing PVC
-kubectl -n $CNXNS delete pvc es-pvc-backup
+kubectl -n $namespace delete pvc es-pvc-backup
 
 # Create new PVC
 cat << EOF > create_es_backup.yaml
@@ -183,7 +188,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: es-pvc-backup2
-  namespace: $CNXNS
+  namespace: $namespace
 spec:
   accessModes:
   - ReadWriteMany
@@ -200,7 +205,7 @@ kubectl create -f create_es_backup.yaml
 In case you want to move your ElasticSearch data from EFS to EBS, you can use the process [Migrate ES Data from EFS to EBS](migrate_es_data.html).
 
 
-To check the creation run: `kubectl -n $CNXNS get pvc`
+To check the creation run: `kubectl -n $namespace get pvc`
 
 Make sure the status of the created pvc is "Bound"
 

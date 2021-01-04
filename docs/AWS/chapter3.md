@@ -23,9 +23,14 @@ The commands use the configuration file created in [4.2 Create configuration fil
 To simplify the resource creation, many settings can be placed into yaml files. Theses files will then be referenced by the various installation commands.  
 Currently 3 different configuration files can be created automatically.  
 
+**Currently the script create the single domain configuration as I have not yet understood what mutlti domain means.**
+
+**Starting with CP7.0 the configuration files are placed into $HOME/cp_config**
+
 1. global-ingress.yaml - Used by the creation of the global-ingress-controller
 2. install_cp.yaml - Used by the creations of the component pack helm charts
-3. boards-cp.yaml - Used by the creation of the activities plus helm chart
+3. sanity_watcher.yaml - Used for the sanity watcher so that the replica count is always 1. (CP 6.x only)
+4. boards-cp.yaml - Used by the creation of the activities plus helm chart
 
 To create these files make sure, your `installsettings.sh` file is up to date, then run:
 
@@ -74,13 +79,17 @@ The es-pvc-backup persistent volume must be placed on a NFS file share as the lo
 # To create all volumes on efs, you can use the generated
 # install_cp.yaml configuration file:
 
+# Load configuration
+. ~/installsettings.sh
+
 helm upgrade connections-volumes \
   ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
-  -i -f ./install_cp.yaml --namespace connections
+  -i -f ./install_cp.yaml --namespace $namespace
 
 
 
 ## To use an EBS volume for Elastic Search use theses commands: ##
+# the setting es7 is new with CP 7.0
 
 # Load our environment settings
 . ~/installsettings.sh
@@ -88,20 +97,24 @@ helm upgrade connections-volumes \
 # Create ElasticSearch Volumes on the default storage (gp2)
 helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
   --name=connections-volumes \
+  --namespace $namespace \
   --set customizer.enabled=true \
   --set solr.enabled=false \
   --set zk.enabled=false \
   --set es.enabled=true \
+  --set es7.enabled=true \
   --set mongo.enabled=false
 
 # Create Solr, Zookeeper and MongoDB Volumes on the custom storage (aws-efs) 
 helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
   --name=connections-volumes \
+  --namespace $namespace \
   --set storageClassName=$storageclass \
   --set customizer.enabled=true \
   --set solr.enabled=true \
   --set zk.enabled=true \
   --set es.enabled=false \
+  --set es7.enabled=false \
   --set mongo.enabled=true
  
 ```
@@ -110,15 +123,28 @@ As the ElasticSearch was installed on the default storage class which does not s
 
 ```
 # Delete existing PVC
-kubectl -n connections delete pvc es-pvc-backup
+kubectl -n connections delete pvc es-pvc-backup es-pvc-backup-7
 
 # Create new PVC
 cat << EOF > create_es_backup.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: es-pvc-backup2
-  namespace: connections
+  name: es-pvc-backup
+  namespace: $namespace
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: $storageclass
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: es-pvc-backup-7
+  namespace: $namespace
 spec:
   accessModes:
   - ReadWriteMany
@@ -135,7 +161,7 @@ kubectl create -f create_es_backup.yaml
 In case you want to move your ElasticSearch data from EFS to EBS, you can use the process [Migrate ES Data from EFS to EBS](migrate_es_data.html).
 
 
-To check the creation run: `kubectl -n connections get pvc`
+To check the creation run: `kubectl -n $namespace get pvc`
 
 Make sure the status of the created pvc is "Bound"
 
@@ -169,30 +195,33 @@ When the task is finished and you choose to upload all images, 3.5 GB of data we
 # move into the support directory of the HCL CP installation files
 cd microservices_connections/hybridcloud/support
 
+## CP 7.0 not necessary anymore
 # Create your ECR Repositories
 for i in $(grep -Po 'docker push \${DOCKER_REGISTRY}\/\K[^:]+' setupImages.sh); \
  do aws ecr create-repository --repository-name $i --region ${AWSRegion}; \
 done 
 
-# Login with your account to the docker registry
-$(aws ecr get-login --no-include-email --region ${AWSRegion})
-
-# Modify the installation script to comment out the docker login command.
-sed -i "s/^docker login/#docker login/" setupImages.sh
+## CP 7.0 !!!!
+# setupImages.sh uploads kudosboards images into a differnt docker repositoy than the default expects.
+# The image is not in a sub folder kudosnames but is named kudosboards-
+# The helm chart expects "<registy>/connections/kudosboards/activity-migration"
+# The script uploads to "<regitry>/connections/kudosboards-activity-migration"
+# When creating the boards_cp.yaml, this needs to be taken into account.
 
 # Push the required images to your registry.
 # In case of problems or you need more images, you can rerun this command at any time.
 # Docker will upload only what is not yet in the registry.
+# Omit the parameter -st to upload all available images to the registry.
 ./setupImages.sh -dr ${ECRRegistry} \
-  -u dummy \
-  -p dummy \
+  -u AWS \
+  -p $(aws ecr get-login-password --region ${AWSRegion}) \
   -st "${starter_stack_list}"
 
 ```
 
 In case your login times out, you can always rerun the login command and the last setupImages.sh command.
 
-In case you have pushed all images to the registry or you are sure you do not need more, you can remove the "images" directory and the download IC-ComponentPack-6.0.0.*.zip so save disk space.
+In case you have pushed all images to the registry or you are sure you do not need more, you can remove the "images" directory and the download ComponentPack-*.zip so save disk space.
 
 You can also remove the local docker images as they are also not necessary anymore. **This command removes all locally stored docker images**
 

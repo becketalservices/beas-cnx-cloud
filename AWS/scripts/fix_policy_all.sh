@@ -15,9 +15,9 @@ else
   fi
 fi
 
-ids=`$kubecmd -n $CNXNS get pv | grep "^pvc" |cut -f1 -d' '`
+ids=`$kubecmd -n $namespace get pv | grep "^pvc" |cut -f1 -d' '`
 for id in $ids; do
   echo "Fix $id"
-  $kubecmd -n $CNXNS patch pv $id -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}'
+  $kubecmd -n $namespace patch pv $id -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}'
 done
 

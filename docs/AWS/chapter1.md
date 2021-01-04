@@ -215,11 +215,17 @@ curl -L -O "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-am
 # CP 6.5.0.1 - use latest availave v2 release
 curl -L -O "https://get.helm.sh/helm-v2.16.6-linux-amd64.tar.gz"
 
+# CP 7.0 - use latest availave v3 release (3.4.2 by time of writing)
+curl -L -O "https://get.helm.sh/helm-v3.4.2-linux-amd64.tar.gz"
+
 tar -zxvf helm*
 sudo mv $HOME/linux-amd64/helm /usr/bin/helm
 
 # check that helm is available
 helm version --client
+
+# add stable helm repo
+helm repo add stable https://charts.helm.sh/stable
 
 ```
 
@@ -228,9 +234,11 @@ helm version --client
 Docker is only necessary to deploy the Docker images into the registry or to build your own Docker images.
 
 
-**Uses this instructions to install Docker according to HCL**
+**Uses this instructions to install Docker according to HCL / Kubernetes**
 
-The instructions about the docker installation are taken from the [Deploying a non-HA Kubernetes platform](https://help.hcltechsw.com/connections/v65/admin/install/cp_prereq_kubernetes_nonha.html).
+The instructions about the docker installation for CP 6.5 or lower are taken from the [Deploying a non-HA Kubernetes platform](https://help.hcltechsw.com/connections/v65/admin/install/cp_prereq_kubernetes_nonha.html).
+
+The instructions about the docker installation for CP 7.0 are taken from the [Kubernetes Documentation - Getting started - Production environment - Container runtimes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#docker).
 
 For the installation run the script:
 
