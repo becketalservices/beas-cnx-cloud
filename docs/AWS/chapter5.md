@@ -97,7 +97,9 @@ redis-server-2.redis-server.connections.svc.cluster.local: slave
 To check that mongo cluster is working as expected, run:
 
 ```
-kubectl exec -it mongo-0 -c mongo -n $namespace -- mongo --ssl --sslPEMKeyFile /etc/mongodb/x509/user_admin.pem --sslCAFile /etc/mongodb/x509/mongo-CA-cert.crt --host mongo-1.mongo.$namespace.svc.cluster.local --authenticationMechanism=MONGODB-X509 --authenticationDatabase '$external' -u C=IE,ST=Ireland,L=Dublin,O=IBM,OU=Connections-Middleware-Clients,CN=admin,emailAddress=admin@mongodb --eval "rs.status()"
+kubectl exec -it mongo-0 -c mongo -n $namespace -- mongo --ssl --sslPEMKeyFile /etc/mongodb/x509/user_admin.pem --sslCAFile /etc/mongodb/x509/mongo-CA-cert.crt \
+  --host mongo-1.mongo.$namespace.svc.cluster.local --authenticationMechanism=MONGODB-X509 --authenticationDatabase '$external' \
+  -u C=IE,ST=Ireland,L=Dublin,O=IBM,OU=Connections-Middleware-Clients,CN=admin,emailAddress=admin@mongodb --eval "rs.status()"
 
 ```
 
@@ -358,7 +360,8 @@ Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 
 
 ```
 ## Outlook 
-helm upgrade connections-outlook-desktop  ~/microservices_connections/hybridcloud/helmbuilds/connections-outlook-desktop-*.tgz -i -f ~/cp_config/ --namespace $namespace
+helm upgrade connections-outlook-desktop  ~/microservices_connections/hybridcloud/helmbuilds/connections-outlook-desktop-*.tgz \
+  -i -f ~/cp_config/outlook-addin.yml --namespace $namespace
 
 ```
 

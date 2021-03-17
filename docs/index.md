@@ -21,7 +21,7 @@ The installation uses as less as possible hardware and can be used for prove of 
 
 __Amazon Web Services AWS__  
 
-Instructions based on HCL Connections Component Pack Version 6.5.0.1  
+Instructions based on HCL Connections Component Pack Version 7.0.0.0, 6.5.0.1, 6.5.0.0  
 [Installation instructions for Amazon Web Services](AWS/index.md)  
 The installation uses AWS Services where ever possible.
   

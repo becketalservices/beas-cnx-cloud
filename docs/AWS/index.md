@@ -11,8 +11,7 @@ components. Please use a payed account.
 3. [Prepare cluster and install your first application](chapter3.html)
 4. [Configure your Network](chapter4.html)
 5. [Install Component Pack](chapter5.html)
-6. [Configure Ingress](chapter6.html)
-7. - outdated - [Update Component Pack](chapter7.html)
+6. [Integration](../integration/index.html)
 
 In case you want to migrate you ElasticSearch data from EFS to EBS, you can use the process [Migrate ES Data from EFS to EBS](migrate_es_data.html).
 
