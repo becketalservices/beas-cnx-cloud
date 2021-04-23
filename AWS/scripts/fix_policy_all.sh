@@ -1,7 +1,8 @@
 #!/bin/bash
+set -x
 . ~/installsettings.sh
 
-command -p kubectl version > /dev/null 2>&1
+command -p kubectl version --client=true > /dev/null 2>&1
 if [ $? -eq 0 ]; then
   kubecmd=kubectl
 else

@@ -47,21 +47,64 @@ controller:
     proxy-body-size: "512m"
   service:
     annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "590"
 $annotationPrivate
+  metrics:
+    enabled: true
+    service:
+      annotations:
+        prometheus.io/port: "10254"
+        prometheus.io/scrape: "true"
 EOF1
 # to forward tcp traffic throuh nginx proxy (for global not necessary anmore)
 #tcp:
 #  "30099": connections/elasticsearch:9200
 #  "30379": connections/haproxy-redis:6379
 
+
+# Write internal ingress controller configuration
+if [ ]; then
+  forwardES="  \"30099\": $namespace/elasticsearch:9200"
+fi
+
+cat << EOF1 > "$HOME/cp_config/internal-ingress.yaml"
+#Global Ingress configuration
+
+controller:
+  replicaCount: $rCountNormal 
+  ingressClass: nginx
+  config:
+  service:
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+  metrics:
+    enabled: true
+    service:
+      annotations:
+        prometheus.io/port: "10254"
+        prometheus.io/scrape: "true"
+# to forward tcp traffic throuh nginx proxy (for global not necessary anmore)
+tcp:
+  "30379": $namepsace/haproxy-redis:6379
+$forwardES
+EOF1
+
+
+
 # convert $starter_stack_list from a , separated list to a space separated list and remove kudos-boards in case it is available
 stack_list=$(echo $starter_stack_list | sed -e "s/,/ /g" -e "s/kudos-boards//" |xargs)
 
 if [ "$useStandaloneES" == "1" ]; then
   # use standalone ES Server
-  ESHost=$standaloneESHost
-  ESPort=$standaloneESPort
+  if [ "$ESVersion" == "7" ]; then
+    ESHost7=$standaloneESHost
+    ESPort7=$standaloneESPort
+  else
+    ESHost=$standaloneESHost
+    ESPort=$standaloneESPort
+  fi
   ESPVC=false
   ESPVC7=false
   if [ "$standaloneESHost" -a "$standaloneESPort" ]; then
@@ -73,6 +116,8 @@ else
   # use integrated ES Server - values default from values.yaml in orientme helmchart
   ESHost=elasticsearch
   ESPort=9200
+  ESHost7=elasticsearch7
+  ESPort7=9200
   if [ $installversion -ge 70 ]; then
     ESPVC=false
     ESPVC7=true
@@ -295,6 +340,9 @@ orient-indexing-service:
   elasticsearch:
     host: $ESHost
     port: $ESPort
+  elasticsearch7:
+    host: $ESHost7
+    port: $ESPort7
   namespace: $namespace
   replicaCount: $rCountNormal
 
@@ -320,6 +368,9 @@ orient-retrieval-service:
   elasticsearch:
     host: $ESHost
     port: $ESPort
+  elasticsearch7:
+    host: $ESHost7
+    port: $ESPort7
   namespace: $namespace
   replicaCount: $rCountNormal
 

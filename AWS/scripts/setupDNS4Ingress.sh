@@ -1,7 +1,7 @@
 #!/bin/bash
 . ~/installsettings.sh
 
-controller="connections-nginx-ingress-controller connections-nginx-ingress-controller-intern global-nginx-nginx-ingress-controller global-nginx-nginx-ingress-controller-extern"
+controller="connections-nginx-ingress-controller connections-nginx-ingress-controller-intern global-nginx-nginx-ingress-controller global-nginx-nginx-ingress-controller-extern global-nginx-ingress-nginx-controller"
 
 for c in $controller; do
   echo "Check for Controller: $c"
@@ -13,9 +13,11 @@ for c in $controller; do
       echo "LB Hostname: $lbhost"
       internal=$(echo $lbhost | grep internal)
       if [ $? -eq 0 ]; then
-        HostedZone=$HostedZoneId
+        ZONES=$HostedZoneId
+        #HostedZone=$HostedZoneId
       else
-        HostedZone=$HostedZoneIdPublic
+        ZONES="$HostedZoneIdPublic $HostedZoneId"
+        #HostedZone=$HostedZoneIdPublic
       fi
       if [ "${c::6}" == "connec" ]; then
         # it is an internal LB. User master_ip
@@ -23,7 +25,8 @@ for c in $controller; do
       else
         dnsname=$ic_front_door
       fi 
-      echo "assign $lbhost to Zone ${HostedZone} to record $dnsname"
+      for HostedZone in $ZONES; do
+        echo "assign $lbhost to Zone ${HostedZone} to record $dnsname"
 cat > /tmp/basic_dns.json <<EOF
 {
   "Changes": [
@@ -43,15 +46,16 @@ cat > /tmp/basic_dns.json <<EOF
   ]
 }
 EOF
-      echo
-      aws route53 change-resource-record-sets --hosted-zone-id ${HostedZone} --region $AWSRegion --change-batch file:///tmp/basic_dns.json
-      if [ $? -eq 0 ]; then
-        echo "SUCCESS"
-      else
-        echo "FAILED !!!!!!!!"
-      fi
-      echo
-      echo
+        echo
+        aws route53 change-resource-record-sets --hosted-zone-id ${HostedZone} --region $AWSRegion --change-batch file:///tmp/basic_dns.json
+        if [ $? -eq 0 ]; then
+          echo "SUCCESS"
+        else
+          echo "FAILED !!!!!!!!"
+        fi
+        echo
+        echo
+      done
     else
       echo "Controller $c not LB Hostname found."
     fi
