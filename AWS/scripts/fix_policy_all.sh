@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 . ~/installsettings.sh
 
 command -p kubectl version --client=true > /dev/null 2>&1

@@ -4,6 +4,7 @@
 controller="connections-nginx-ingress-controller connections-nginx-ingress-controller-intern global-nginx-nginx-ingress-controller global-nginx-nginx-ingress-controller-extern global-nginx-ingress-nginx-controller"
 
 for c in $controller; do
+  echo
   echo "Check for Controller: $c"
  
   erg=$(kubectl get services --namespace $namespace $c)

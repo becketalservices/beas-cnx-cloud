@@ -22,6 +22,7 @@ else
   SNTYPE="  --vpc-public-subnets $SUBNETID"
 fi
 
+cat << EOF > run_eksctl.sh
 eksctl create cluster --name "$EKSName" \
   $VERSION \
   --nodegroup-name standard-workers \
@@ -34,4 +35,4 @@ eksctl create cluster --name "$EKSName" \
   $SNTYPE \
   $TAGS \
   $ASG
-
+EOF
