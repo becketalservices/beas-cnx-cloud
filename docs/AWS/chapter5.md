@@ -79,7 +79,7 @@ Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 
 To check that redis cluster is working as expected, run:
 
 ```
-kubectl exec -it redis-server-0 -n $connections -- bash /usr/bin/runRedisTools.sh --getAllRoles
+kubectl exec -it redis-server-0 -n $namespace -- bash /usr/bin/runRedisTools.sh --getAllRoles
 
 ```
 
@@ -157,7 +157,7 @@ To upload to customizer files, run:
 curl -L -O https://github.com/OpenCode4Connections/customizer-utils/archive/master.zip
 unzip master.zip
 for file in customizer-utils-master/*; do
-  kubectl cp -n connections $file $(kubectl get pods -n connections | grep mw-proxy | awk 'NR==1{print $1}'):/mnt;
+  kubectl cp -n $namespace $file $(kubectl get pods -n $namespace | grep mw-proxy | awk 'NR==1{print $1}'):/mnt;
 done
 
 ```
@@ -208,6 +208,8 @@ Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes 
 
 To save some money, the redis traffic can be exposed through this ingress controller. To do so a appropriate config map needs to be created as the template does not exist in the helm chart.
 
+####CP6.x
+
 ```
 ## Create TCP config map
 bash beas-cnx-cloud/common/scripts/cnx_ingress_tcp.sh
@@ -229,10 +231,35 @@ bash beas-cnx-cloud/AWS/scripts/aws-intenal-lb.sh
 
 **Map LB to your master_ip dns resolution**
 
-experimental script:
+experimental script - works with classic load balancer:
 
 ```
 bash beas-cnx-cloud/AWS/scripts/setupDNS4Ingress.sh
+
+```
+
+####CP7.x
+
+Setup the internal ingress controller by using the [community Nginx Ingress controller](https://github.com/kubernetes/ingress-nginx/tree/master/charts/ingress-nginx).
+
+The necessary helm repository was already added when installing the global ingress controller.
+
+The ingress resource will be exposed by an internal nlb load balancer. https is disabled.
+
+```
+helm upgrade cnx-ingress ingress-nginx/ingress-nginx -i -f ~/cp_config/internal-ingress.yaml --namespace $namespace
+
+helm upgrade cnx-ingress-rules ~/microservices_connections/hybridcloud/helmbuilds/cnx-ingress-*.tgz -i -f ~/cp_config/install_cp.yaml --namespace $namespace
+
+```
+
+
+**Map LB to your master_ip dns resolution**
+
+experimental script - works with network load balancer:
+
+```
+bash beas-cnx-cloud/AWS/scripts/setupDNS4Ingressv2.sh
 
 ```
 
@@ -275,18 +302,18 @@ When you do not use ISAM:
 
 ```
 ## Orient Me
-helm upgrade orientme ~/microservices_connections/hybridcloud/helmbuilds/orientme-*.tgz -i -f ~/cp_config/install_cp.yaml --namespace connections
+helm upgrade orientme ~/microservices_connections/hybridcloud/helmbuilds/orientme-*.tgz -i -f ~/cp_config/install_cp.yaml --namespace $namespace
 
 ```
 
-Watch the container creation by issuing the command: `watch -n 10 kubectl -n connections get pods`  
+Watch the container creation by issuing the command: `watch -n 10 kubectl -n $namespace get pods`  
 Wait until the ready state is 1/1 or 2/2 for all running pods. It usually takes up to 10 minutes to complete.
 
 To shut down the solr and zookeeper services to save resources run:
 
 ```
-kubectl -n connections scale statefulset solr --replicas=0  
-kubectl -n connections scale statefulset zookeeper --replicas=0  
+kubectl -n $namespace scale statefulset solr --replicas=0  
+kubectl -n $namespace scale statefulset zookeeper --replicas=0  
 
 ```
 
@@ -413,7 +440,7 @@ helm upgrade sanity-watcher $helmchart -i -f ~/cp_config/sanity-watcher.yaml --n
 
 ```
 
-Check if all pods are running: `watch -n 10 'kubectl -n connections get pods | grep "^sanity-"'`
+Check if all pods are running: `watch -n 10 'kubectl -n $namespace get pods | grep "^sanity-"'`
 
 To access your sanity dashboard, you can use the kubernetes proxy on your local desktop.
 
@@ -455,7 +482,7 @@ The full procedure and more configuration options can be found in [Populating th
 To view your migration configuration run:
 
 ```
-kubectl exec -n connections -it $(kubectl get pods -n connections | grep people-migrate | awk '{print $1}') cat /usr/src/app/migrationConfig
+kubectl exec -n $namespace -it $(kubectl get pods -n $namespace | grep people-migrate | awk '{print $1}') cat /usr/src/app/migrationConfig
 
 ```
 
@@ -468,7 +495,7 @@ In case of a larger infrastructure check out the documentation [Migrating the da
 For smaller instances where you can do a full migration with just one command run:
 
 ```
-kubectl exec -n connections -it $(kubectl get pods -n connections | grep people-migrate | awk '{print $1}') npm run start migrate
+kubectl exec -n $namespace -it $(kubectl get pods -n $namespace | grep people-migrate | awk '{print $1}') npm run start migrate
 
 ```
 

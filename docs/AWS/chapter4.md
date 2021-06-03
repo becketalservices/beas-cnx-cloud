@@ -45,12 +45,16 @@ There are different possibilities on how to connect to a Kubernetes cluster. Usu
 
 The infrastructure will contain 2 ingress controller. The global we are currently set up and the cnx-ingress-controller provided by HCL. All HCL and Kudos components assume that the cnx-ingress-controller is the default ingress controller. Therefore the new global-ingress-controller uses a different ingress-class called `global-nginx`. 
 
-To install the globa ingress controller make sure you created the global-ingress.yaml file. 
+To install the global ingress controller make sure you created the global-ingress.yaml file. 
 Depending on the setting "GlobalIngressPublic" the ingress controller will create a public or private load balancer.
 
 ```
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+
+
 # Global Ingress Controller
-helm upgrade global-nginx stable/nginx-ingress -i -f ./global-ingress.yaml --namespace connections 
+helm upgrade global-nginx ingress-nginx/ingress-nginx -i -f ~/cp_config/global-ingress.yaml --namespace $namespace 
 
 ```
 
@@ -60,7 +64,7 @@ helm upgrade global-nginx stable/nginx-ingress -i -f ./global-ingress.yaml --nam
 The DNS resolution must be set correctly to allow users and services to access your ingress controller from everywhere. 
 Especially when using the automatic SSL Certificate generation configured in 4.5.1 Automatic SSL Certificate retrieval and renewal.
 
-The script detects the currently running services by name, get the configured load balances and then creates Route53 CNAME entries in the appropriate Zones.  
+The script detects the currently running services by name, get the configured load balances and then creates Route53 CNAME entries in the appropriate Zones. Private Load Balancer get registered in the private zone only. Public load balancer get registered in both zones. 
 
 To configure the DNS entry for your LB via script run:
 
@@ -74,7 +78,7 @@ bash beas-cnx-cloud/AWS/scripts/setupDNS4Ingress.sh
 
 To secure your traffic a SSL certificate is necessary. This certificate must be added to a kubernetes secret.
 
-## 4.4.1 Automatic SSL Certificate retrieval and renewal
+## 4.4.1 Automatic SSL Certificate retrieval and renewal for nginx-ingress
 When using the ingress controller together with the [cert-manager](https://cert-manager.io/) , the necessary ssl certificates can be retrieved automatically. 
 
 **The SSL Certificate retrieval only works, when you are using a pulbic Load Balancer (The ingress controller is accessible via http (port 80) from the public internet and your productive DNS entry is already pointing to your load balancer.**
@@ -93,9 +97,9 @@ helm repo add jetstack https://charts.jetstack.io
 # Update your local Heml chart repositry cache:
 helm repo update
 
-# Install the cert-manager Helm chart
-helm install jetstack/cert-manager \
-  --name cert-manager \
+# Install the cert-manager Helm chart !! K8s v1.18 or newer, Helm v3.3 or newer !!
+helm install cert-manager jetstack/cert-manager \
+  --version v1.3.1 \
   --namespace cert-manager \
   --set rbac.create=true \
   --set installCRDs=true
@@ -119,7 +123,7 @@ bash beas-cnx-cloud/Azure/scripts/ca_cluster_issuer.sh
 
 ```
 
-## 4.4.2 Manual SSL Certificate creation
+## 4.4.2 Manual SSL Certificate creation for nginx-ingress
 If you want to use an other CA managed certificate or a self singed certificate create the secret manually.  
 For simplicity we use a self singed certificate in this documentation. Example: [TLS certificate termination](https://github.com/kubernetes/contrib/tree/master/ingress/controllers/nginx/examples/tls)
 
@@ -131,6 +135,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /tmp/tls.key -out /t
 kubectl -n connections create secret tls tls-secret --key /tmp/tls.key --cert /tmp/tls.crt
 
 ```
+
 
 # 4.5 Forward traffic through global ingress
 

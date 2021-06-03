@@ -21,17 +21,26 @@ installversion=70
 GlobalIngressPublic=1
 
 # EKS settings
-EKSName="cluster name e.g. CNX_Test_EKS" 
+EKSName="cluster name e.g. cnx_test_eks" 
+EKSVersion=1.19
 EKSNodeType=t3a.xlarge
 ## Depending on your installation
 ## Generic Worker: 2; Generic Worker + ES: 4
 EKSNodeCount=2
+EKSNodeCountMax=10
 EKSNodeVolumeSize=100
 EKSNodePublicKey="Your EC2 Key Name"
+# Set to 1 if you want to use EKS private networking
+EKSPrivateNetworking=1
+# You can tag all resources created by EKS.
+# Format: Key=Vaule,Key=Value
+EKSTags=""
 AWSRegion="Your AWS Region e.g. eu-west-1"
 #VPCId=<VPC Id e.g. vpc-2345abcd>
 SUBNETID=<List of Subnet IDs e.g.: subnet-a9189fe2,subnet-50432629>
-
+# Set this to 1 in case you want to use the EKS auto scaling feature.
+# If you enable this, choose a small worker node type
+EKSAutoscale=0
 
 # Route53
 HostedZoneId="HostedZoneId"
@@ -42,13 +51,13 @@ storageclass=aws-efs
 
 # ES settings
 useStandaloneES=1
-standaloneESHost=<Hostname of your ES Server endpoint>
+standaloneESHost=<Hostname of your ES Server end-point>
 standaloneESPort=443
 
 # ECR settings
 ECRRegistry="your docker registry"
 
-# Certificte related settings
+# Certificate related settings
 acme_email="your enterprise email"
 use_lestencrypt_prod="[true/false]"
 
@@ -107,23 +116,10 @@ EOF
 
 ## 2.2 Create the EKS environment
 
-For all options and probably adoptions in your environment see the `eksctl help` and the project [README on GitHub](https://github.com/weaveworks/eksctl/blob/master/README.md).
+For all options and probably adoptions in your environment see the `eksctl help` and the project [eksctl on GitHub](https://github.com/weaveworks/eksctl).
 
 ```
-# Load settings file
-. ~/installsettings.sh
-
-# Run eksctl
-eksctl create cluster \
---name "$EKSName" \
---nodegroup-name standard-workers \
---node-type $EKSNodeType \
---nodes $EKSNodeCount \
---node-ami auto \
---node-volume-size $EKSNodeVolumeSize \
---ssh-public-key $EKSNodePublicKey \
---region $AWSRegion \
---vpc-public-subnets $SUBNETID
+bash beas-cnx-cloud/AWS/scripts/create_eks_cluster.sh
 
 ```
 
@@ -134,6 +130,8 @@ Run command:
 kubectl get svc
 
 ```
+
+**In case you want to use Autoscaler for your EKS cluster, follow the [Cluster Autoscaler](https://docs.aws.amazon.com/de_de/eks/latest/userguide/cluster-autoscaler.html) instructions.**
 
 ## 2.3 Configure Helm on your EKS environment (for Helm v2.x only)
  
@@ -193,11 +191,12 @@ echo $groupid
 
 # Create EFS File System
 aws efs create-file-system \
---creation-token $EKSName \
---performance-mode generalPurpose \
---throughput-mode bursting \
---tags Key=Name,Value="$EKSName" \
---region $AWSRegion
+  --creation-token $EKSName \
+  --performance-mode generalPurpose \
+  --throughput-mode bursting \
+  --tags Key=Name,Value="$EKSName" \
+  --region $AWSRegion \
+  --encrypted
 
 # Get FSId
 efsid=$(aws efs describe-file-systems \
@@ -234,8 +233,6 @@ run the command:
 # get id from your AWS Console or used the variable that was set during EFS creation above.
 fsid=$efsid
 
-# Region:
-region=$AWSRegion
 
 # Use the official helm chart to install:
 # !!! command differs on helm version
@@ -243,13 +240,13 @@ region=$AWSRegion
 # Helm v2
 helm install stable/efs-provisioner --name efs-provisioner \
   --set efsProvisioner.efsFileSystemId=$fsid \
-  --set efsProvisioner.awsRegion=$region \
+  --set efsProvisioner.awsRegion=$AWSRegion \
   --set efsProvisioner.storageClass.name=$storageclass
 
 # Helm v3
 helm install efs-provisioner stable/efs-provisioner \
   --set efsProvisioner.efsFileSystemId=$fsid \
-  --set efsProvisioner.awsRegion=$region \
+  --set efsProvisioner.awsRegion=$AWSRegion \
   --set efsProvisioner.storageClass.name=$storageclass
 
 ```

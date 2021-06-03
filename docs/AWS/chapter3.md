@@ -6,12 +6,12 @@ We need the installation files from HCL as well to continue.
 
 Download the files to your Bastion host and extract them. In case you have your files on a Azure file share or AWS S3, you can use my [s3scripts](https://github.com/MSSputnik/s3scripts) to access your files.
 
-To fully extract the component pack archive: `unzip ComponentPack*.zip`
+To fully extract the component pack archive: `unzip HCL_ConnectionsCP_*.zip`
 
 In case your Container Registry already contains the docker images, you can just extract the scripts and heml charts:
 
 ```
-unzip ComponentPack*.zip \
+unzip HCL_ConnectionsCP_*.zip \
   -x microservices_connections/hybridcloud/images/*
 
 ```
@@ -23,7 +23,7 @@ The commands use the configuration file created in [4.2 Create configuration fil
 To simplify the resource creation, many settings can be placed into yaml files. Theses files will then be referenced by the various installation commands.  
 Currently 3 different configuration files can be created automatically.  
 
-**Currently the script create the single domain configuration as I have not yet understood what mutlti domain means.**
+**Currently the script create the single domain configuration as I have not yet understood what multi domain means.**
 
 **Starting with CP7.0 the configuration files are placed into $HOME/cp_config**
 
@@ -45,7 +45,13 @@ bash beas-cnx-cloud/common/scripts/write_cp_config.sh
 
 All HCL Connections related services are deployed inside the namespace `connections` per default. See the HCL documentation in case you want to change this default.
 
-To create the namespace run: `kubectl create namespace connections`
+To create the namespace run: 
+
+```
+. ~/installsettings.sh
+kubectl create namespace $namespace
+
+```
 
  
 ## 3.3 Create persistent volumes
@@ -83,8 +89,8 @@ The es-pvc-backup persistent volume must be placed on a NFS file share as the lo
 . ~/installsettings.sh
 
 helm upgrade connections-volumes \
-  ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
-  -i -f ./install_cp.yaml --namespace $namespace
+  ~/beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
+  -i -f ~/cp_config/install_cp.yaml --namespace $namespace
 
 
 
@@ -95,7 +101,7 @@ helm upgrade connections-volumes \
 . ~/installsettings.sh
 
 # Create ElasticSearch Volumes on the default storage (gp2)
-helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
+helm install ~/beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
   --name=connections-volumes \
   --namespace $namespace \
   --set customizer.enabled=true \
@@ -106,7 +112,7 @@ helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
   --set mongo.enabled=false
 
 # Create Solr, Zookeeper and MongoDB Volumes on the custom storage (aws-efs) 
-helm install ./beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
+helm install ~/beas-cnx-cloud/Azure/helm/connections-persistent-storage-nfs \
   --name=connections-volumes \
   --namespace $namespace \
   --set storageClassName=$storageclass \
@@ -202,7 +208,7 @@ for i in $(grep -Po 'docker push \${DOCKER_REGISTRY}\/\K[^:]+' setupImages.sh); 
 done 
 
 ## CP 7.0 !!!!
-# setupImages.sh uploads kudosboards images into a differnt docker repositoy than the default expects.
+# setupImages.sh uploads kudosboards images into a different docker repository than the default expects.
 # The image is not in a sub folder kudosnames but is named kudosboards-
 # The helm chart expects "<registy>/connections/kudosboards/activity-migration"
 # The script uploads to "<regitry>/connections/kudosboards-activity-migration"
@@ -212,10 +218,11 @@ done
 # In case of problems or you need more images, you can rerun this command at any time.
 # Docker will upload only what is not yet in the registry.
 # Omit the parameter -st to upload all available images to the registry.
+if [ "${starter_stack_list}" ]; then ST="-st '${starter_stack_list}'"; fi
 ./setupImages.sh -dr ${ECRRegistry} \
   -u AWS \
   -p $(aws ecr get-login-password --region ${AWSRegion}) \
-  -st "${starter_stack_list}"
+  $ST
 
 ```
 

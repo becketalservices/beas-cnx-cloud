@@ -14,3 +14,8 @@ Activites Plus and Kudos Boards
 -------------------------------
 
 To integrate Activites Plus see [chapter3](chapter3.md).
+
+Prometheus und Grafana
+----------------------
+
+To activate monitoring for K8s, Linux and HCL Connecitons see [chapter4](chapter4.md).

@@ -5,6 +5,9 @@
 Make sure you have a VPC with 2 or 3 subnets in a EKS Supported region.
 The subnets should be in one in each availability zone and have at least 128 free IP Addresses.
 
+Make sure you tagged your subnets properly to have the load balancer created properly. [tag the Amazon VPC subnets](https://aws.amazon.com/premiumsupport/knowledge-center/eks-vpc-subnet-discovery/)
+
+![AWS VPC Setup](../images/AWS_VPC_Setup.png "AWS VPC Setup")
 ## 1.2 IAM Roles and Policies
 
 Create an IAM Policy to allow your EKS Management Host access to manage the required resources on your behalf.  
@@ -97,12 +100,12 @@ Assign this policies to your new IAM Role:
 
 ## 1.2 Create an EKS Management Host in your VPC to administer your cluster
 
-To administer your EKS cluster easily, create a administrative host, called the EKS Management Host.
+To administer your EKS cluster easily, create a administrative host, called the EKS Admin Host.
 
-The management host will be a small Linux host to upload the docker images to the registry and administer the cluster.
+The admin host will be a small Linux host to upload the docker images to the registry and administer the cluster.
 It is recommended that the host is in the same VPC as your Kubernetes cluster. This will simplify the access to the cluster resources and the administration.
 
-The host can use a very small server e.g. t2.medium as no compute power is necessary.
+The host can use a very small server e.g. t3a.medium as no compute power is necessary.
 
 **AWS Console**
 
@@ -115,7 +118,7 @@ Attach the EKSManager Role you created in 1.1 to the instance.
 All provided scripts are created on CentOS or RHEL Server. They are not tested with other Linux distributions. 
 * Open port 22 (SSH) to access your Management Host from everywhere.
 * Make sure a public IP is assigned. Either assign an Elastic IP afterwards or make sure "Auto-assign Public IP" is set to enable.
-* Make sure you assign 30GB of Hard Disk space to your new instance. You need this disk space to extract the Component Pack.
+* Make sure you assign 60GB of Hard Disk space to your new instance. You need this disk space to extract the Component Pack.
 
 
 ## 1.3 Add the required software to your Management Host
@@ -133,14 +136,14 @@ sudo yum -y install vim nano unzip bind-utils
 
 ### 1.3.2 Install AWS CLI
 
-Login to your new managemnt host using ssh and install the required tools:
+Login to your new admin host using SSH and install the required tools:
 
 ```
 # Install AWS CLI
 sudo yum -y install epel-release
-sudo yum -y install python-pip
-sudo pip install --upgrade pip
-sudo pip install awscli --upgrade
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
 
 # Check AWS CLI Version
 aws --version
@@ -212,10 +215,10 @@ Download and extract the helm binaries:
 # CP 6.0 - 6.5
 curl -L -O "https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-amd64.tar.gz"
 
-# CP 6.5.0.1 - use latest availave v2 release
+# CP 6.5.0.1 - use latest available v2 release
 curl -L -O "https://get.helm.sh/helm-v2.16.6-linux-amd64.tar.gz"
 
-# CP 7.0 - use latest availave v3 release (3.4.2 by time of writing)
+# CP 7.0 - use latest available v3 release (3.4.2 by time of writing)
 curl -L -O "https://get.helm.sh/helm-v3.4.2-linux-amd64.tar.gz"
 
 tar -zxvf helm*
