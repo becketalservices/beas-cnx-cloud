@@ -31,10 +31,13 @@ else
   bCountNormal=2
 fi
 
+if [ "$EKSTags" ]; then
+  serviceTags="service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: $EKSTags"
+fi
 # Write global ingress controller configuration
 
 if [ "$GlobalIngressPublic" != "1" ]; then
-  annotationPrivate="      service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0"
+  annotationPrivate="service.beta.kubernetes.io/aws-load-balancer-internal: "true""
 fi
 
 cat << EOF1 > "$HOME/cp_config/global-ingress.yaml"
@@ -49,7 +52,8 @@ controller:
     annotations:
       service.beta.kubernetes.io/aws-load-balancer-type: nlb
       service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "590"
-$annotationPrivate
+      $serviceTags
+      $annotationPrivate
   metrics:
     enabled: true
     service:
@@ -64,12 +68,12 @@ EOF1
 
 
 # Write internal ingress controller configuration
-if [ ]; then
+if [ "$useStandaloneES" != "1" ]; then
   forwardES="  \"30099\": $namespace/elasticsearch:9200"
 fi
 
 cat << EOF1 > "$HOME/cp_config/internal-ingress.yaml"
-#Global Ingress configuration
+#Internal Ingress configuration
 
 controller:
   replicaCount: $rCountNormal 
@@ -79,6 +83,8 @@ controller:
     annotations:
       service.beta.kubernetes.io/aws-load-balancer-type: nlb
       service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+      $serviceTags
+    enableHttps: false
   metrics:
     enabled: true
     service:
@@ -87,7 +93,7 @@ controller:
         prometheus.io/scrape: "true"
 # to forward tcp traffic throuh nginx proxy (for global not necessary anmore)
 tcp:
-  "30379": $namepsace/haproxy-redis:6379
+  "30379": $namespace/haproxy-redis:6379
 $forwardES
 EOF1
 
@@ -148,6 +154,15 @@ else
   MSTeamsEnabled="false"
 fi
 
+if [ "$RedisPwd" ]; then
+set_redis_secret="  set_redis_secret: $RedisPwd"
+fi
+if [ $installversion -ge 70 ]; then
+  setIngress=false
+else
+  setIngress=true 
+fi
+
 # Write Component Pack configuration
 cat << EOF2 > "$HOME/cp_config/install_cp.yaml"
 #Component Pack configuration
@@ -178,6 +193,7 @@ env:
   set_master_ip: "$master_ip"
   set_starter_stack_list: "$stack_list"
   skip_configure_redis: true
+$set_redis_secret
 image:
   repository: ${ECRRegistry}/connections
 
@@ -411,10 +427,11 @@ ingress:
   hosts:
     domain: ${GlobalDomainName}
 multiDomainEnabled: false
+setIngressOnly: $setIngress 
 
 tcp:
-  "30099": connections/elasticsearch:9200
-  "30379": connections/haproxy-redis:6379
+  "30379": $namespace/haproxy-redis:6379
+$forwardES
 
 #ingress controller & mw-proxy & sanity & sanity-watcher !!! overwrite by --set replicaCount='1'
 replicaCount: $rCountNormal
